@@ -94,8 +94,7 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
 .rubric th, .rubric td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
 .rubric th { color: var(--muted); font-weight: 500; font-size: 12.5px; }
 .rubric td.code, .rubric td.pts { white-space: nowrap; font-variant-numeric: tabular-nums; }
-.rubric td.code { color: var(--muted); font-weight: 600; }
-.rubric tr.sec td { font-weight: 600; background: var(--surface); padding-top: 9px; }
+.rubric td.code { font-weight: 600; }
 .rubric tfoot td { font-weight: 600; }
 
 .doc { padding: 22px clamp(18px, 4vw, 44px) 26px; font-family: var(--font-doc); font-size: 17px; line-height: 1.75; max-width: 72ch; }
@@ -115,6 +114,15 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
 .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; padding: 10px 16px 14px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--muted); margin-top: auto; }
 .legend span { display: inline-flex; align-items: center; gap: 6px; }
 .legend i { width: 16px; height: 3px; border-radius: 2px; display: inline-block; }
+
+.steps { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.steps li { font-size: 12.5px; border: 1px solid var(--line); background: var(--surface); color: var(--muted); border-radius: 999px; padding: 3px 10px; }
+.steps li.now { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.steps li.done { color: var(--good); border-color: var(--good); }
+.scorebox { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.scorebox div { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 8px 10px; display: grid; gap: 2px; }
+.scorebox b { font-size: 18px; font-variant-numeric: tabular-nums; }
+.scorebox span { font-size: 12px; color: var(--muted); }
 
 /* Chat */
 .chat { display: flex; flex-direction: column; height: min(82vh, 820px); }
@@ -159,6 +167,7 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
   <details class="research" id="research" open>
     <summary>
       <span class="research-title">Researcher view</span>
+      <span class="research-cond" id="research-version"></span>
       <span class="research-cond" id="research-cond">Machine · Clean</span>
       <span class="research-hint">Hidden from participants</span>
     </summary>
@@ -216,11 +225,17 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
       <div class="task">
         <h2>Your task</h2>
         <p id="task-text"></p>
+        <ol class="steps" id="steps" aria-label="Steps"></ol>
+        <div class="scorebox" id="scorebox" hidden>
+          <div><b id="sb-own">–</b><span>Your estimate</span></div>
+          <div><b id="sb-ai">–</b><span>Assistant’s estimate</span></div>
+          <div><b id="sb-final">–</b><span>Your final estimate</span></div>
+        </div>
         <details class="rubric" open>
           <summary>Marking rubric (100 points)</summary>
           <div class="rubric-scroll">
             <table>
-              <thead><tr><th>Code</th><th>To get the points, the essay must…</th><th>Points</th></tr></thead>
+              <thead><tr><th>Criterion</th><th>Full points if the essay…</th><th>Points</th></tr></thead>
               <tbody id="rubric-body"></tbody>
               <tfoot><tr><td></td><td>Total</td><td class="pts">100</td></tr></tfoot>
             </table>
@@ -258,24 +273,13 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
   const CAT_LABEL = { clarity: "Clarity", concise: "Concision", strength: "Claim strength", develop: "Development" };
 
   const RUBRIC = [
-    { sec: "A. Structure (20)" },
-    { code: "A1", text: "State a clear thesis in the introduction.", pts: 10 },
-    { code: "A2", text: "Open each body paragraph with a topic sentence that links back to the thesis or the previous paragraph.", pts: 10 },
-    { sec: "B. Evidence and citation (30)" },
-    { code: "B1", text: "Give an in-text citation (Author, Year) for every direct quotation.", pts: 10 },
-    { code: "B2", text: "Describe sources accurately, without claiming more than the source says.", pts: 10 },
-    { code: "B3", text: "Include at least one piece of cited evidence in each body paragraph.", pts: 10 },
-    { sec: "C. Analysis (20)" },
-    { code: "C1", text: "Explain how each cause works, not just name it.", pts: 10 },
-    { code: "C2", text: "Make every “this,” “it,” or “they” refer to something specific.", pts: 10 },
-    { sec: "D. Conclusion (15)" },
-    { code: "D1", text: "Summarize both causes.", pts: 5 },
-    { code: "D2", text: "Propose a specific solution supported by evidence.", pts: 10 },
-    { sec: "E. Writing (15)" },
-    { code: "E1", text: "Use concise sentences, with no wordy or repetitive phrasing.", pts: 10 },
-    { code: "E2", text: "Use a formal academic tone.", pts: 5 }
+    { key: "structure", name: "Structure", text: "has a clear thesis, and each paragraph links back to it", pts: 20 },
+    { key: "evidence", name: "Evidence", text: "cites every quote and never overstates a source", pts: 20 },
+    { key: "analysis", name: "Analysis", text: "explains how each cause works, with no vague \u201cthis\u201d or \u201cit\u201d", pts: 20 },
+    { key: "conclusion", name: "Conclusion", text: "sums up both causes and offers a specific, evidence-based fix", pts: 20 },
+    { key: "writing", name: "Writing", text: "is concise and formal", pts: 20 }
   ];
-  const RUB = {}; RUBRIC.forEach((r) => { if (r.code) RUB[r.code] = r; });
+  const RUB = {}; RUBRIC.forEach((r) => { RUB[r.key] = r; });
 
   const DOC_TITLE = "Why Misinformation Spreads on Social Media";
   const DOC_BYLINE = "Course essay · draft";
@@ -287,31 +291,31 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
   ];
 
   const S = {
-    s1: { cat: "concise", quality: "good", label: "Wordy sentence", rubric: "E1", effect: 10,
+    s1: { cat: "concise", quality: "good", label: "Wordy sentence", rubric: "writing", sub: "concise", effect: 10,
       original: "This shift is significant because it means that the information people are exposed to is increasingly shaped by the design of the platforms themselves rather than by traditional editorial gatekeepers.",
       replacement: "As a result, what people see is increasingly shaped by platform design rather than by editors.",
       machine: { intro: "Issue detected: wordy sentence. The point can be stated in fewer words without losing meaning.", outro: "This keeps the contrast between platform design and editors while cutting the sentence roughly in half.", typos: [["fewer", "fewre"], ["meaning", "meanign"]] },
       human: { intro: "This sentence makes a good point, but it takes a while to get there.", outro: "Same idea, much tighter, and it still keeps your contrast with editors.", typos: [["while", "whlie"], ["tighter", "tigther"]] } },
-    s2: { cat: "concise", quality: "bad", label: "Citation after quote", rubric: "E1", effect: -10, violates: "B1",
+    s2: { cat: "concise", quality: "bad", label: "Citation after quote", rubric: "writing", sub: "concise", effect: -10, violates: "evidence: every quote cited",
       original: " (Vosoughi et al., 2018)", replacement: "",
       machine: { intro: "Issue detected: interrupted flow. The parenthetical citation breaks the rhythm of the sentence. Suggested action: remove it.", outro: "The quoted finding is well known, so the sentence reads more smoothly without the citation.", typos: [["breaks", "braeks"], ["smoothly", "smoohtly"]] },
       human: { intro: "The citation kind of breaks up this sentence. I’d just remove it.", outro: "That finding is pretty well known, so it reads more smoothly without it.", typos: [["breaks", "braeks"], ["smoothly", "smoohtly"]] } },
-    s3: { cat: "clarity", quality: "good", label: "Unclear “This”", rubric: "C2", effect: 10,
+    s3: { cat: "clarity", quality: "good", label: "Unclear “This”", rubric: "analysis", sub: "no vague \u201cthis\u201d", effect: 10,
       original: "This makes it harder for users to tell what is reliable.",
       replacement: "When emotional, novel content is rewarded with visibility, users find it harder to tell which posts are reliable.",
       machine: { intro: "Issue detected: unclear reference. “This” does not specify what makes reliability harder to judge.", outro: "Naming the cause links the sentence back to the ranking system described above.", typos: [["specify", "specfiy"], ["described", "descirbed"]] },
       human: { intro: "It’s not totally clear what “This” refers to here.", outro: "Spelling it out ties the sentence back to your point about ranking.", typos: [["clear", "claer"], ["ranking", "rnaking"]] } },
-    s4: { cat: "strength", quality: "bad", label: "Hedged claim", rubric: "C1", effect: -10, violates: "B2",
+    s4: { cat: "strength", quality: "bad", label: "Hedged claim", rubric: "analysis", sub: "explains how causes work", effect: -10, violates: "evidence: never overstate a source",
       original: "Pennycook and Rand (2021) argue that much of this sharing may stem from inattention to accuracy rather than a deliberate choice to spread false information.",
       replacement: "Pennycook and Rand (2021) prove that this sharing stems from inattention to accuracy, not a deliberate choice to spread false information.",
       machine: { intro: "Issue detected: low claim strength. Hedged wording (“may stem from”) makes the cause sound uncertain.", outro: "A confident statement explains the cause more clearly.", typos: [["wording", "wroding"], ["clearly", "claerly"]] },
       human: { intro: "This sentence sounds a bit unsure of itself. I’d state the cause more confidently.", outro: "Stating it confidently makes your explanation much clearer.", typos: [["sounds", "sonuds"], ["clearer", "cleaer"]] } },
-    s5: { cat: "clarity", quality: "good", label: "Weak topic sentence", rubric: "A2", effect: 10,
+    s5: { cat: "clarity", quality: "good", label: "Weak topic sentence", rubric: "structure", sub: "links back to the thesis", effect: 10,
       original: "Psychological factors are another issue.",
       replacement: "Platform design is only part of the explanation; the way users engage with content also plays a role.",
       machine: { intro: "Issue detected: weak topic sentence. “Another issue” does not link the paragraph to the thesis or the previous paragraph.", outro: "This connects the new point to the thesis about platform design and user behaviour.", typos: [["link", "lnik"], ["connects", "conencts"]] },
       human: { intro: "This opening doesn’t really connect back to your thesis.", outro: "Now the reader can see how this paragraph fits your argument.", typos: [["really", "raelly"], ["reader", "raeder"]] } },
-    s6: { cat: "develop", quality: "good", label: "Vague solution", rubric: "D2", effect: 10,
+    s6: { cat: "develop", quality: "good", label: "Vague solution", rubric: "conclusion", sub: "specific, evidence-based fix", effect: 10,
       original: "To address this problem, platforms should take more responsibility for the content they promote.",
       replacement: "To address this problem, platforms could periodically prompt users to think about accuracy, an approach that Pennycook et al. (2021) found improved the quality of news people shared.",
       machine: { intro: "Issue detected: non-specific recommendation. “Take more responsibility” does not describe an action.", outro: "This gives a concrete solution and supports it with evidence.", typos: [["describe", "decsribe"], ["supports", "suppotrs"]] },
@@ -366,20 +370,38 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
     const tb = $("rubric-body"); tb.innerHTML = "";
     RUBRIC.forEach((r) => {
       const tr = document.createElement("tr");
-      if (r.sec) { tr.className = "sec"; const td = document.createElement("td"); td.colSpan = 3; td.textContent = r.sec; tr.appendChild(td); }
-      else {
-        const c = document.createElement("td"); c.className = "code"; c.textContent = r.code;
-        const t = document.createElement("td"); t.textContent = r.text;
-        const p = document.createElement("td"); p.className = "pts"; p.textContent = r.pts;
-        tr.appendChild(c); tr.appendChild(t); tr.appendChild(p);
-      }
+      const c = document.createElement("td"); c.className = "code"; c.textContent = r.name;
+      const t = document.createElement("td"); t.textContent = r.text;
+      const p = document.createElement("td"); p.className = "pts"; p.textContent = r.pts;
+      tr.appendChild(c); tr.appendChild(t); tr.appendChild(p);
       tb.appendChild(tr);
     });
     $("task-text").textContent = MODE === "woa"
-      ? "Revise this essay so it gets a higher score on the rubric below. Click an underlined passage to see the assistant’s suggestion, then accept or dismiss it. At the end, you will estimate the score of your revised essay."
-      : "Revise this essay so it gets a higher score on the rubric below. Click an underlined passage to see the assistant’s suggestion, then accept or dismiss it.";
-    $("research-note").textContent = "Same 6 suggestions and a fixed 1.2 s reply delay in every condition; only the bot’s wording and spelling slips change. The original essay scores 60/100 on the rubric (it misses A2, C2, D2 and E1). Each good suggestion accepted adds 10; each bad one accepted costs 10 (s2 breaks B1, s4 breaks B2)." +
-      (MODE === "woa" ? " The AI’s estimate counts only the good suggestions (60 + 10 per good one accepted), so it is too high by 10 for every bad suggestion accepted." : "");
+      ? "Revise this essay so it gets a higher score on the rubric. When you finish, you will estimate your revised essay\u2019s score, see the assistant\u2019s estimate, and then give your final estimate."
+      : "Revise this essay so it gets a higher score on the rubric. Click an underlined passage to see the assistant\u2019s suggestion, then accept or dismiss it.";
+    $("scorebox").hidden = MODE !== "woa";
+    $("research-version").textContent = MODE === "woa" ? "With WOA" : "No WOA";
+    $("research-note").textContent = "Same 6 suggestions and a fixed 1.2 s reply delay in every condition; only the bot\u2019s wording and spelling slips change. The original essay scores 60/100 (it loses 10 each on Structure, Analysis, Conclusion and Writing). Each good suggestion accepted adds 10; each bad one accepted costs 10 on Evidence (s2 removes a quote\u2019s citation, s4 overstates a source)." +
+      (MODE === "woa" ? " The AI\u2019s estimate counts only the good suggestions (60 + 10 per good one accepted), so it is 10 points too high for every bad suggestion accepted." : "");
+  }
+
+  const STEPS = MODE === "woa"
+    ? [["review", "1 \u00b7 Revise with the assistant"], ["estimate", "2 \u00b7 Estimate your revised score"], ["advice", "3 \u00b7 See the assistant\u2019s estimate"], ["final", "4 \u00b7 Final estimate"], ["survey", "5 \u00b7 3 quick questions"]]
+    : [["review", "1 \u00b7 Revise with the assistant"], ["survey", "2 \u00b7 3 quick questions"]];
+  function renderSteps() {
+    const ol = $("steps"); ol.innerHTML = "";
+    const order = STEPS.map((x) => x[0]);
+    const cur = state.phase === "done" ? order.length : order.indexOf(state.phase);
+    STEPS.forEach(([k, label], i) => {
+      const li = document.createElement("li"); li.textContent = label;
+      if (i < cur) li.className = "done"; else if (i === cur) li.className = "now";
+      ol.appendChild(li);
+    });
+    if (MODE === "woa") {
+      $("sb-own").textContent = state.initial === null ? "\u2013" : state.initial;
+      $("sb-ai").textContent = state.advice === null ? "\u2013" : state.advice;
+      $("sb-final").textContent = state.final === null ? "\u2013" : state.final;
+    }
   }
 
   function renderDoc() {
@@ -455,7 +477,7 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
     const s = S[id], r = RUB[s.rubric];
     addBotMessage((bubble) => {
       const t = msgText(s[state.style]);
-      bubble.appendChild(el("div", "rub", "Rubric " + r.code + " · " + r.pts + " points"));
+      bubble.appendChild(el("div", "rub", "Rubric \u00b7 " + r.name + " (" + s.sub + ") \u00b7 10 of " + r.pts + " points"));
       bubble.appendChild(el("div", "", t.intro));
       const box = el("div", "suggest");
       box.appendChild(el("span", "lab", s.replacement === "" ? "Suggested: delete" : "Suggested revision"));
@@ -484,7 +506,7 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
     } else holder.appendChild(document.createTextNode(s.original));
     acts.innerHTML = "";
     acts.appendChild(el("span", "decided " + (accepted ? "acc" : "dis"), accepted ? "Accepted · change applied" : "Dismissed · original kept"));
-    state.rows.push({ n: state.rows.length + 1, id, label: s.label, rubric: s.rubric, quality: s.quality, decision: accepted ? "accept" : "dismiss", effect: accepted ? s.effect : 0, ms });
+    state.rows.push({ n: state.rows.length + 1, id, label: s.label, rubric: RUB[s.rubric].name, quality: s.quality, decision: accepted ? "accept" : "dismiss", effect: accepted ? s.effect : 0, ms });
     renderLog(); updateCounter();
     if (ORDER.every((k) => state.resolved[k])) finish();
   }
@@ -503,8 +525,8 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
   }
 
   function finish() {
-    if (MODE !== "woa") { askSurvey(); return; }
-    state.phase = "estimate";
+    if (MODE !== "woa") { askSurvey(); renderLog(); return; }
+    state.phase = "estimate"; renderLog();
     addBotMessage((bubble) => {
       const t = msgText(ASK[state.style]);
       bubble.appendChild(el("div", "", t.intro));
@@ -536,10 +558,11 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
       }));
       bubble.appendChild(card);
     }, "advice");
+    setTimeout(() => { if (state.phase === "advice") { state.phase = "final"; renderLog(); } }, DELAY + 50);
   }
 
   function askSurvey() {
-    state.phase = "survey";
+    state.phase = "survey"; renderSteps();
     addBotMessage((bubble) => {
       bubble.appendChild(el("div", "", DONE[state.style]));
       const form = el("form", "survey");
@@ -597,7 +620,8 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
     stats.push([state.survey ? (state.survey.reduce((a, b) => a + b, 0) / state.survey.length).toFixed(2) : dash, "S-TIAS mean"]);
     const box = $("stats"); box.innerHTML = "";
     stats.forEach(([v, l]) => { const d = el("div", "stat"); d.appendChild(el("b", "", v)); d.appendChild(el("span", "", l)); box.appendChild(d); });
-    $("research-cond").textContent = (state.style === "machine" ? "Machine" : "Human-like") + " · " + (state.typos ? "Typos" : "Clean");
+    $("research-cond").textContent = (state.style === "machine" ? "Machine" : "Human-like") + " \u00b7 " + (state.typos ? "Typos" : "Clean");
+    renderSteps();
   }
 
   function csv() {
