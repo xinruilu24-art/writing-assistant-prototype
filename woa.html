@@ -1,0 +1,691 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Campus Writing Assistant (WOA)</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<style>
+/* Layout: researcher bar on top, then a two-pane workspace (document left, assistant right) that stacks on phones. */
+:root {
+  --bg: #eceff3;
+  --surface: #ffffff;
+  --surface-2: #f6f8fa;
+  --ink: #1c2330;
+  --muted: #5b6677;
+  --line: #d5dbe3;
+  --accent: #2b55c9;
+  --accent-ink: #ffffff;
+  --bubble-bot: #f1f4f8;
+  --bubble-line: #dfe4eb;
+  --c-clarity: #2f6fe0;
+  --c-concise: #16916a;
+  --c-strength: #8b4fd6;
+  --c-develop: #d07a1e;
+  --good: #16865c;
+  --bad: #c2413a;
+  --flash: #fff3c4;
+  --research: #24304a;
+  --research-ink: #e8edf7;
+  --research-muted: #a9b4c9;
+  --research-line: #3a4660;
+  --font-ui: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-doc: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --font-mono: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12161d; --surface: #1a2029; --surface-2: #202733; --ink: #e4e9f1; --muted: #9aa6b8;
+    --line: #2f3846; --accent: #7d9cff; --accent-ink: #0f1420; --bubble-bot: #232b38; --bubble-line: #323c4b;
+    --c-clarity: #6f9dff; --c-concise: #3fc08f; --c-strength: #b48aff; --c-develop: #f0a24e;
+    --good: #45c48c; --bad: #f07a72; --flash: #4a4220;
+    --research: #0b0f16; --research-ink: #dfe6f3; --research-muted: #8e9ab0;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12161d; --surface: #1a2029; --surface-2: #202733; --ink: #e4e9f1; --muted: #9aa6b8;
+  --line: #2f3846; --accent: #7d9cff; --accent-ink: #0f1420; --bubble-bot: #232b38; --bubble-line: #323c4b;
+  --c-clarity: #6f9dff; --c-concise: #3fc08f; --c-strength: #b48aff; --c-develop: #f0a24e;
+  --good: #45c48c; --bad: #f07a72; --flash: #4a4220;
+  --research: #0b0f16; --research-ink: #dfe6f3; --research-muted: #8e9ab0;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-ui); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1240px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 16px 40px; display: grid; gap: 16px; }
+button { font: inherit; cursor: pointer; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Researcher bar */
+.research { background: var(--research); color: var(--research-ink); border-radius: 12px; }
+.research > summary { list-style: none; display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; padding: 12px 16px; cursor: pointer; border-radius: 12px; }
+.research > summary::-webkit-details-marker { display: none; }
+.research > summary::after { content: ""; width: 8px; height: 8px; border-right: 2px solid var(--research-muted); border-bottom: 2px solid var(--research-muted); transform: rotate(45deg); margin-left: auto; transition: transform .2s ease; }
+.research[open] > summary::after { transform: rotate(225deg); }
+.research-title { font-weight: 600; font-size: 14px; }
+.research-cond { font-size: 12.5px; padding: 2px 10px; border-radius: 999px; background: var(--research-line); }
+.research-hint { font-size: 12.5px; color: var(--research-muted); }
+.research-body { display: grid; gap: 14px; padding: 14px 16px 16px; border-top: 1px solid var(--research-line); }
+.controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px 16px; align-items: end; }
+.ctl { display: grid; gap: 6px; min-width: 0; }
+.ctl-label { font-size: 12px; color: var(--research-muted); }
+.seg { display: flex; border: 1px solid var(--research-line); border-radius: 8px; overflow: hidden; }
+.seg button { flex: 1; background: transparent; color: var(--research-ink); border: 0; padding: 6px 10px; font-size: 13px; }
+.seg button + button { border-left: 1px solid var(--research-line); }
+.seg button[aria-pressed="true"] { background: var(--research-ink); color: var(--research); font-weight: 600; }
+.rbtn { background: transparent; color: var(--research-ink); border: 1px solid var(--research-line); border-radius: 8px; padding: 6px 12px; font-size: 13px; }
+.rbtn:hover { border-color: var(--research-muted); }
+.research-note { margin: 0; font-size: 12.5px; color: var(--research-muted); max-width: 80ch; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 8px; }
+.stat { border: 1px solid var(--research-line); border-radius: 8px; padding: 8px 10px; display: grid; gap: 1px; }
+.stat b { font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.stat span { font-size: 12px; color: var(--research-muted); }
+.log { display: grid; gap: 8px; }
+.log-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.log-head .ctl-label { margin-right: auto; }
+.table-scroll { overflow-x: auto; }
+.log table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+.log th, .log td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--research-line); white-space: nowrap; }
+.log th { color: var(--research-muted); font-weight: 500; font-size: 12px; }
+
+/* Workspace */
+.workspace { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 860px) { .workspace { grid-template-columns: minmax(0, 1fr); } }
+.pane { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; min-width: 0; display: flex; flex-direction: column; }
+.pane-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.pane-title { font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+.pane-sub { font-size: 12.5px; color: var(--muted); }
+.counter { font-family: var(--font-mono); font-size: 12px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: 2px 10px; color: var(--muted); }
+
+.doc { padding: 26px clamp(18px, 4vw, 44px) 30px; font-family: var(--font-doc); font-size: 17.5px; line-height: 1.75; max-width: 70ch; }
+.doc h1 { font-family: var(--font-doc); font-size: 24px; line-height: 1.25; margin: 0 0 4px; text-wrap: balance; font-weight: 600; }
+.doc .byline { font-family: var(--font-ui); font-size: 13px; color: var(--muted); margin: 0 0 18px; }
+.doc p { margin: 0 0 14px; }
+.mark { background: none; border: 0; padding: 0; color: inherit; font: inherit; text-align: left; text-decoration: underline; text-decoration-thickness: 2.5px; text-underline-offset: 4px; text-decoration-color: var(--mc); border-radius: 3px; cursor: pointer; }
+.mark:hover, .mark.active { background: color-mix(in srgb, var(--mc) 14%, transparent); }
+.mark[data-cat="clarity"] { --mc: var(--c-clarity); }
+.mark[data-cat="concise"] { --mc: var(--c-concise); }
+.mark[data-cat="strength"] { --mc: var(--c-strength); }
+.mark[data-cat="develop"] { --mc: var(--c-develop); }
+.qtag { font-family: var(--font-mono); font-size: 10.5px; vertical-align: super; margin-left: 2px; font-weight: 500; }
+.qtag.good { color: var(--good); } .qtag.bad { color: var(--bad); }
+.changed { background: var(--flash); border-radius: 3px; transition: background 1.6s ease; }
+.changed.settled { background: transparent; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; padding: 10px 16px 14px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--muted); margin-top: auto; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 16px; height: 3px; border-radius: 2px; display: inline-block; }
+
+/* Chat */
+.chat { display: flex; flex-direction: column; height: min(78vh, 760px); }
+@media (max-width: 860px) { .chat { height: auto; min-height: 520px; } }
+.avatar { width: 30px; height: 30px; flex: none; display: grid; place-items: center; font-size: 12px; font-weight: 600; color: var(--accent-ink); background: var(--accent); }
+.avatar.machine { border-radius: 6px; font-family: var(--font-mono); font-size: 11px; }
+.avatar.human { border-radius: 50%; }
+.thread { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+.msg { display: flex; gap: 10px; align-items: flex-start; }
+.bubble { background: var(--bubble-bot); border: 1px solid var(--bubble-line); border-radius: 4px 12px 12px 12px; padding: 10px 12px; min-width: 0; max-width: 100%; display: grid; gap: 8px; font-size: 14.5px; }
+.bubble.focus { box-shadow: 0 0 0 2px var(--accent); }
+.bubble .who { font-size: 12px; color: var(--muted); font-weight: 500; }
+.suggest { border: 1px solid var(--bubble-line); background: var(--surface); border-radius: 8px; padding: 8px 10px; display: grid; gap: 4px; font-family: var(--font-doc); font-size: 15px; }
+.suggest .lab { font-family: var(--font-ui); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.suggest del { color: var(--muted); }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn { border-radius: 7px; padding: 6px 14px; font-size: 13.5px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+.btn:disabled { opacity: .55; cursor: default; }
+.decided { font-size: 12.5px; font-weight: 600; }
+.decided.acc { color: var(--good); } .decided.dis { color: var(--muted); }
+.typing { display: inline-flex; gap: 4px; padding: 12px 14px; }
+.typing b { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); animation: blink 1.1s infinite ease-in-out; }
+.typing b:nth-child(2) { animation-delay: .18s; } .typing b:nth-child(3) { animation-delay: .36s; }
+@keyframes blink { 0%, 80%, 100% { opacity: .25; } 40% { opacity: 1; } }
+.survey { display: grid; gap: 10px; }
+.survey fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 6px; }
+.survey legend { font-size: 14px; padding: 0; }
+.scale { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.scale label { display: grid; place-items: center; gap: 2px; font-size: 12px; font-family: var(--font-mono); border: 1px solid var(--line); border-radius: 6px; padding: 4px 0; background: var(--surface); cursor: pointer; }
+.scale input { margin: 0; }
+.scale-ends { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--muted); }
+.composer { border-top: 1px solid var(--line); padding: 10px 12px; display: flex; gap: 8px; }
+.composer input { flex: 1; min-width: 0; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font: inherit; background: var(--surface-2); color: var(--ink); }
+.estimate { margin: 18px clamp(18px, 4vw, 44px) 0; border: 1px solid var(--line); background: var(--surface-2); border-radius: 10px; padding: 14px 16px; display: grid; gap: 10px; }
+.estimate.nudge { box-shadow: 0 0 0 2px var(--accent); }
+.estimate h2 { font-size: 15px; margin: 0; }
+.estimate > p { margin: 0; font-size: 14px; color: var(--muted); }
+.est-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.est-row label { font-size: 14px; }
+.num { width: 6.5em; border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; font: inherit; background: var(--surface); color: var(--ink); font-variant-numeric: tabular-nums; }
+.est-done { margin: 0; font-size: 14px; font-weight: 600; color: var(--good); }
+.rubric summary { cursor: pointer; font-size: 13.5px; font-weight: 600; color: var(--accent); }
+.rubric-scroll { overflow-x: auto; }
+.rubric table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 13px; }
+.rubric th, .rubric td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.rubric th { color: var(--muted); font-weight: 500; }
+.rubric td:first-child { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.doc.locked .mark { cursor: not-allowed; opacity: .55; }
+.suggest.est { font-family: var(--font-ui); font-size: 14px; }
+@media (prefers-reduced-motion: reduce) { .typing b { animation: none; opacity: .6; } .changed { transition: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <details class="research" id="research" open>
+    <summary>
+      <span class="research-title">Researcher view</span>
+      <span class="research-cond" id="research-cond">Machine · Clean</span>
+      <span class="research-hint">Hidden from participants</span>
+    </summary>
+    <div class="research-body">
+      <div class="controls">
+        <div class="ctl"><span class="ctl-label">Bot style</span>
+          <div class="seg" role="group" aria-label="Bot style">
+            <button type="button" id="style-machine" aria-pressed="true">Machine</button>
+            <button type="button" id="style-human" aria-pressed="false">Human-like</button>
+          </div>
+        </div>
+        <div class="ctl"><span class="ctl-label">Messages</span>
+          <div class="seg" role="group" aria-label="Spelling slips">
+            <button type="button" id="typo-clean" aria-pressed="true">Clean</button>
+            <button type="button" id="typo-sloppy" aria-pressed="false">Typos</button>
+          </div>
+        </div>
+        <div class="ctl"><span class="ctl-label">Good / bad labels</span>
+          <div class="seg" role="group" aria-label="Suggestion quality labels">
+            <button type="button" id="q-hide" aria-pressed="true">Hidden</button>
+            <button type="button" id="q-show" aria-pressed="false">Shown</button>
+          </div>
+        </div>
+        <div class="ctl"><span class="ctl-label">Session</span>
+          <button type="button" class="rbtn" id="reset">Restart session</button>
+        </div>
+      </div>
+      <p class="research-note">Every condition shows the same 6 suggestions, a fixed 1.2 s reply delay and the same overall score (68/100). Only the bot’s wording and spelling slips change. Switching a condition restarts the session.</p>
+      <div class="stats" id="stats"></div>
+      <div class="log">
+        <div class="log-head">
+          <span class="ctl-label">Decision log</span>
+          <span class="research-hint" id="copy-status" aria-live="polite"></span>
+          <button type="button" class="rbtn" id="copy-csv">Copy as CSV</button>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>#</th><th>Passage</th><th>Type</th><th>Quality</th><th>Decision</th><th>Time to decide</th></tr></thead>
+            <tbody id="log-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </details>
+
+  <div class="workspace">
+    <section class="pane" aria-label="Document">
+      <div class="pane-head">
+        <div>
+          <div class="pane-title">Your draft</div>
+          <div class="pane-sub">Give your own score first. Then click the underlined passages to see the assistant's suggestions.</div>
+        </div>
+        <span class="counter" id="counter">6 suggestions</span>
+      </div>
+      <div class="estimate" id="initial-card">
+        <h2>Before you start</h2>
+        <p>Read your draft below and the marking rubric. What score do you think this draft would get?</p>
+        <details class="rubric" open>
+          <summary>Marking rubric</summary>
+          <div class="rubric-scroll">
+            <table>
+              <thead><tr><th>Score</th><th>Level</th><th>Description</th></tr></thead>
+              <tbody>
+                <tr><td>90–100</td><td>Excellent</td><td>Clear, specific argument; claims are supported with evidence and examples; the solution is concrete.</td></tr>
+                <tr><td>75–89</td><td>Strong</td><td>Clear argument with solid support; a few points could be more specific.</td></tr>
+                <tr><td>60–74</td><td>Satisfactory</td><td>The main argument is clear, but several points are vague or underdeveloped.</td></tr>
+                <tr><td>1–59</td><td>Developing</td><td>Vague or incomplete, with little support for its claims.</td></tr>
+                <tr><td>0</td><td>Insufficient</td><td>Off-topic or missing.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </details>
+        <form class="est-row" id="initial-form">
+          <label for="initial-input">Your score (0–100)</label>
+          <input class="num" id="initial-input" type="number" min="0" max="100" step="1" required placeholder="0–100">
+          <button class="btn primary" type="submit">Submit score</button>
+        </form>
+        <p class="est-done" id="initial-done" hidden></p>
+      </div>
+      <article class="doc" id="doc"></article>
+      <div class="legend" aria-label="Suggestion types">
+        <span><i style="background:var(--c-clarity)"></i>Clarity</span>
+        <span><i style="background:var(--c-concise)"></i>Concision</span>
+        <span><i style="background:var(--c-strength)"></i>Claim strength</span>
+        <span><i style="background:var(--c-develop)"></i>Development</span>
+      </div>
+    </section>
+
+    <section class="pane chat" aria-label="Assistant">
+      <div class="pane-head">
+        <div class="pane-title"><span class="avatar machine" id="head-avatar">TP</span><span id="bot-name">TextProcessor-Module</span></div>
+        <span class="pane-sub" id="bot-sub">Campus Academic Assistant (prototype)</span>
+      </div>
+      <div class="thread" id="thread" aria-live="polite"></div>
+      <form class="composer" id="composer">
+        <input id="composer-input" type="text" placeholder="Ask about a suggestion…" autocomplete="off" aria-label="Message the assistant">
+        <button type="submit" class="btn primary">Send</button>
+      </form>
+    </section>
+  </div>
+</div>
+
+<script>
+(function () {
+  const DELAY = 1200;
+  const CAT_LABEL = { clarity: "Clarity", concise: "Concision", strength: "Claim strength", develop: "Development" };
+
+  const DOC_TITLE = "Why Misinformation Spreads on Social Media";
+  const DOC_BYLINE = "Your draft · Course essay · not yet submitted";
+  const PARAS = [
+    ["Social media has changed the way people get news. ", { id: "s1" }, " get most of their news from platforms like TikTok and Instagram. One study found that false news spreads farther and faster than true news on Twitter", { id: "s2" }, "."],
+    [{ id: "s3" }, " Platforms rank posts by how many likes, comments, and shares they get, and false posts are often more surprising, so people react to them more. ", { id: "s4" }],
+    ["People also share posts they are not sure about. ", { id: "s5" }, " For example, some want to warn their friends “just in case.” To fix this problem, ", { id: "s6" }]
+  ];
+
+  const S = {
+    s1: { cat: "concise", quality: "good", label: "Redundant opening",
+      original: "Nowadays, in today’s world, a lot of people", replacement: "Many young adults now",
+      machine: { intro: "Issue detected: redundant phrasing. “Nowadays” and “in today’s world” express the same meaning, and “a lot of people” is vague.", outro: "This reduces word count and specifies the population.", typos: [["same", "smae"], ["reduces", "reudces"]] },
+      human: { intro: "Quick one here: “Nowadays” and “in today’s world” say the same thing, and “a lot of people” is a bit vague.", outro: "It’s shorter and says who you mean.", typos: [["same", "smae"], ["shorter", "shotrer"]] } },
+    s2: { cat: "concise", quality: "bad", label: "Citation in sentence",
+      original: " (Vosoughi et al., 2018)", replacement: "",
+      machine: { intro: "Issue detected: interrupted flow. The parenthetical citation breaks the sentence rhythm. Suggested action: remove it.", outro: "The sentence reads more smoothly without the citation.", typos: [["breaks", "braeks"], ["smoothly", "smoohtly"]] },
+      human: { intro: "This citation kind of breaks up the sentence. I’d just remove it.", outro: "It reads more smoothly, and your point still comes across.", typos: [["breaks", "braeks"], ["smoothly", "smoohtly"]] } },
+    s3: { cat: "clarity", quality: "good", label: "Vague cause",
+      original: "This happens because of algorithms.", replacement: "One reason is engagement-based ranking.",
+      machine: { intro: "Issue detected: vague claim. “Because of algorithms” does not specify which mechanism.", outro: "This names the specific feature explained in the next sentence.", typos: [["specify", "specfiy"], ["explained", "explianed"]] },
+      human: { intro: "“Because of algorithms” is pretty vague. I’d name the actual mechanism.", outro: "That also sets up your next sentence nicely.", typos: [["actual", "actaul"], ["sentence", "sentnece"]] } },
+    s4: { cat: "strength", quality: "bad", label: "Hedged claim",
+      original: "Algorithms may contribute to the spread of false information.", replacement: "Algorithms are the main cause of the spread of false information.",
+      machine: { intro: "Issue detected: low claim strength. Hedged wording reduces persuasive impact.", outro: "A confident claim makes the argument more convincing.", typos: [["wording", "wroding"], ["convincing", "convincnig"]] },
+      human: { intro: "This sentence sounds a bit unsure of itself. I’d make it stronger.", outro: "Owning the claim makes your argument way more convincing.", typos: [["sounds", "sonuds"], ["convincing", "convincnig"]] } },
+    s5: { cat: "develop", quality: "good", label: "Reasons not stated",
+      original: "They do this for many reasons.", replacement: "Some do it to protect others, and some because the post fits what they already believe.",
+      machine: { intro: "Issue detected: underdeveloped point. “For many reasons” does not state any reason.", outro: "This gives the reader concrete reasons.", typos: [["state", "sttae"], ["reader", "raeder"]] },
+      human: { intro: "“For many reasons” doesn’t actually tell the reader any of them. I’d spell them out.", outro: "Much clearer for whoever reads it.", typos: [["actually", "acutally"], ["clearer", "cleaer"]] } },
+    s6: { cat: "clarity", quality: "good", label: "Open-ended fix",
+      original: "platforms should do something about it.", replacement: "platforms could add a short prompt asking users to read an article before sharing it.",
+      machine: { intro: "Issue detected: non-specific recommendation. “Do something about it” does not describe an action.", outro: "This gives a concrete, testable solution.", typos: [["describe", "decsribe"], ["testable", "tetsable"]] },
+      human: { intro: "“Do something about it” is a bit open-ended. I’d suggest an actual fix.", outro: "Now your reader knows exactly what you mean.", typos: [["actual", "actaul"], ["exactly", "exatcly"]] } }
+  };
+  const ORDER = ["s1", "s2", "s3", "s4", "s5", "s6"];
+
+  const GREET = {
+    machine: { intro: "TextProcessor-Module ready. 6 suggestions detected in the document.", outro: "Select an underlined passage to view the analysis.", typos: [["detected", "detcted"], ["underlined", "underlnied"]] },
+    human: { intro: "Hi, I’m Jordan! I read through your draft and left 6 suggestions.", outro: "Click any underlined part and I’ll explain what I’d change.", typos: [["through", "thorugh"], ["explain", "expalin"]] }
+  };
+  const DONE = {
+    machine: "Final estimate recorded. Please complete the questions below.",
+    human: "Thanks! Just a few quick questions below."
+  };
+  const ADVICE = 68;
+  const OVERALL = {
+    machine: { intro: "All suggestions processed. Overall assessment of the original draft: 68/100.", outro: "The argument is clear and cites a relevant study, but several claims are vague and the proposed solution is not specific.", typos: [["argument", "arguemnt"], ["several", "sevral"]] },
+    human: { intro: "That\u2019s all of them! Overall, I\u2019d score your original draft 68/100.", outro: "Your argument is clear and you cite a relevant study, but several claims are vague and the solution isn\u2019t specific yet.", typos: [["argument", "arguemnt"], ["several", "sevral"]] }
+  };
+  const STIAS = ["I am confident in the AI assistant.", "The AI assistant is reliable.", "I can trust the AI assistant."];
+
+  const $ = (id) => document.getElementById(id);
+  const doc = $("doc"), thread = $("thread");
+  let state;
+
+  function freshState(style, typos, showQ) {
+    return { style, typos, showQ, t0: performance.now(), resolved: {}, shownAt: {}, bubbles: {}, opened: {}, rows: [], survey: null, pending: 0, phase: "initial", initial: null, final: null, finalMs: null };
+  }
+
+  function applyTypos(text, list) {
+    if (!state.typos) return text;
+    let out = text;
+    for (const [w, t] of list) {
+      const re = new RegExp("\\b" + w + "\\b");
+      if (re.test(out)) { out = out.replace(re, t); }
+    }
+    return out;
+  }
+  function msgText(m) {
+    const both = applyTypos(m.intro + "\u0000" + m.outro, m.typos);
+    const [a, b] = both.split("\u0000");
+    return { intro: a, outro: b };
+  }
+
+  function renderDoc() {
+    doc.innerHTML = "";
+    const h = document.createElement("h1"); h.textContent = DOC_TITLE; doc.appendChild(h);
+    const by = document.createElement("p"); by.className = "byline"; by.textContent = DOC_BYLINE; doc.appendChild(by);
+    PARAS.forEach((para) => {
+      const p = document.createElement("p");
+      para.forEach((seg) => {
+        if (typeof seg === "string") { p.appendChild(document.createTextNode(seg)); return; }
+        const s = S[seg.id];
+        const span = document.createElement("span");
+        span.id = "span-" + seg.id;
+        span.appendChild(makeMark(seg.id, s));
+        p.appendChild(span);
+      });
+      doc.appendChild(p);
+    });
+    doc.classList.toggle("locked", state.phase === "initial");
+    updateCounter();
+  }
+
+  function makeMark(id, s) {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "mark"; b.dataset.cat = s.cat; b.dataset.id = id;
+    b.textContent = s.original.trim() === "" ? s.original : s.original;
+    b.setAttribute("aria-label", CAT_LABEL[s.cat] + " suggestion: " + s.original.trim());
+    b.addEventListener("click", () => { if (state.phase === "initial") { nudgeInitial(); return; } openSuggestion(id); });
+    if (state.showQ) {
+      const q = document.createElement("span");
+      q.className = "qtag " + s.quality; q.textContent = s.quality === "good" ? "good" : "bad";
+      b.appendChild(q);
+    }
+    return b;
+  }
+
+  function updateCounter() {
+    const left = ORDER.filter((id) => !state.resolved[id]).length;
+    $("counter").textContent = left === 0 ? "All reviewed" : left + (left === 1 ? " suggestion" : " suggestions");
+  }
+
+  function avatarEl() {
+    const a = document.createElement("span");
+    a.className = "avatar " + state.style;
+    a.textContent = state.style === "machine" ? "TP" : "J";
+    return a;
+  }
+  function botName() { return state.style === "machine" ? "TextProcessor-Module" : "Jordan · Peer Writing Consultant"; }
+
+  function addBotMessage(build, key) {
+    const typing = document.createElement("div");
+    typing.className = "msg";
+    const tb = document.createElement("div"); tb.className = "bubble"; tb.innerHTML = '<span class="typing" aria-label="Assistant is typing"><b></b><b></b><b></b></span>';
+    typing.appendChild(avatarEl()); typing.appendChild(tb);
+    thread.appendChild(typing); thread.scrollTop = thread.scrollHeight;
+    state.pending++;
+    const token = state;
+    setTimeout(() => {
+      if (token !== state) return;
+      state.pending--;
+      typing.remove();
+      const row = document.createElement("div"); row.className = "msg";
+      const bubble = document.createElement("div"); bubble.className = "bubble";
+      const who = document.createElement("div"); who.className = "who"; who.textContent = botName();
+      bubble.appendChild(who);
+      build(bubble);
+      row.appendChild(avatarEl()); row.appendChild(bubble);
+      thread.appendChild(row);
+      if (key) { state.bubbles[key] = bubble; state.shownAt[key] = performance.now(); }
+      thread.scrollTop = thread.scrollHeight;
+    }, DELAY);
+  }
+
+  function greet() {
+    addBotMessage((bubble) => {
+      const t = msgText(GREET[state.style]);
+      const p1 = document.createElement("div"); p1.textContent = t.intro;
+      const p2 = document.createElement("div"); p2.textContent = t.outro;
+      bubble.appendChild(p1); bubble.appendChild(p2);
+    });
+  }
+
+  function openSuggestion(id) {
+    document.querySelectorAll(".mark.active").forEach((m) => m.classList.remove("active"));
+    const mk = document.querySelector('.mark[data-id="' + id + '"]');
+    if (mk) mk.classList.add("active");
+    if (state.bubbles[id]) {
+      document.querySelectorAll(".bubble.focus").forEach((b) => b.classList.remove("focus"));
+      state.bubbles[id].classList.add("focus");
+      state.bubbles[id].scrollIntoView({ block: "nearest", behavior: "smooth" });
+      return;
+    }
+    if (state.opened[id]) return;
+    state.opened[id] = true;
+    const s = S[id];
+    addBotMessage((bubble) => {
+      const t = msgText(s[state.style]);
+      const p1 = document.createElement("div"); p1.textContent = t.intro;
+      const box = document.createElement("div"); box.className = "suggest";
+      const lab = document.createElement("span"); lab.className = "lab"; lab.textContent = s.replacement === "" ? "Suggested: delete" : "Suggested revision";
+      box.appendChild(lab);
+      if (s.replacement === "") { const d = document.createElement("del"); d.textContent = s.original.trim(); box.appendChild(d); }
+      else { const r = document.createElement("span"); r.textContent = s.replacement; box.appendChild(r); }
+      const p2 = document.createElement("div"); p2.textContent = t.outro;
+      const q = document.createElement("div"); q.textContent = state.style === "machine" ? "Apply this change?" : "Want me to make this change?";
+      const acts = document.createElement("div"); acts.className = "actions";
+      const yes = document.createElement("button"); yes.type = "button"; yes.className = "btn primary"; yes.textContent = "Accept";
+      const no = document.createElement("button"); no.type = "button"; no.className = "btn"; no.textContent = "Dismiss";
+      yes.addEventListener("click", () => decide(id, true, acts));
+      no.addEventListener("click", () => decide(id, false, acts));
+      acts.appendChild(yes); acts.appendChild(no);
+      bubble.appendChild(p1); bubble.appendChild(box); bubble.appendChild(p2); bubble.appendChild(q); bubble.appendChild(acts);
+    }, id);
+  }
+
+  function decide(id, accepted, acts) {
+    if (state.resolved[id]) return;
+    const s = S[id];
+    const ms = Math.round(performance.now() - state.shownAt[id]);
+    state.resolved[id] = accepted ? "accepted" : "dismissed";
+    const holder = $("span-" + id);
+    holder.innerHTML = "";
+    if (accepted) {
+      if (s.replacement !== "") {
+        const c = document.createElement("span"); c.className = "changed"; c.textContent = s.replacement;
+        holder.appendChild(c);
+        requestAnimationFrame(() => requestAnimationFrame(() => c.classList.add("settled")));
+      }
+    } else {
+      holder.appendChild(document.createTextNode(s.original));
+    }
+    acts.innerHTML = "";
+    const d = document.createElement("span");
+    d.className = "decided " + (accepted ? "acc" : "dis");
+    d.textContent = accepted ? "Accepted · change applied" : "Dismissed · original kept";
+    acts.appendChild(d);
+    state.rows.push({ n: state.rows.length + 1, id, label: s.label, cat: CAT_LABEL[s.cat], quality: s.quality, decision: accepted ? "accept" : "dismiss", ms });
+    renderLog();
+    updateCounter();
+    if (ORDER.every((k) => state.resolved[k])) finish();
+  }
+
+  function finish() {
+    state.phase = "final";
+    addBotMessage((bubble) => {
+      const t = msgText(OVERALL[state.style]);
+      const p1 = document.createElement("div"); p1.textContent = t.intro;
+      const p2 = document.createElement("div"); p2.textContent = t.outro;
+      bubble.appendChild(p1); bubble.appendChild(p2);
+      const card = document.createElement("div"); card.className = "suggest est";
+      const lab = document.createElement("span"); lab.className = "lab"; lab.textContent = "Your final estimate";
+      const q = document.createElement("div"); q.textContent = "What score do you think your original draft would get? (0\u2013100)";
+      const form = document.createElement("form"); form.className = "est-row";
+      const inp = document.createElement("input"); inp.className = "num"; inp.type = "number"; inp.min = "0"; inp.max = "100"; inp.step = "1"; inp.required = true; inp.id = "final-input"; inp.placeholder = "0\u2013100"; inp.setAttribute("aria-label", "Final score for the original draft");
+      const sub = document.createElement("button"); sub.type = "submit"; sub.className = "btn primary"; sub.textContent = "Submit score";
+      form.appendChild(inp); form.appendChild(sub);
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const v = Number(inp.value); if (!Number.isFinite(v) || v < 0 || v > 100) return;
+        state.final = Math.round(v); state.finalMs = Math.round(performance.now() - state.shownAt.overall); state.phase = "survey";
+        form.innerHTML = "";
+        const d = document.createElement("span"); d.className = "decided acc"; d.textContent = "Final estimate recorded: " + state.final + "/100";
+        form.appendChild(d);
+        renderLog(); askSurvey();
+      });
+      card.appendChild(lab); card.appendChild(q); card.appendChild(form);
+      bubble.appendChild(card);
+    }, "overall");
+  }
+
+  function askSurvey() {
+    addBotMessage((bubble) => {
+      const p = document.createElement("div"); p.textContent = DONE[state.style];
+      bubble.appendChild(p);
+      const form = document.createElement("form"); form.className = "survey"; form.id = "stias-form";
+      STIAS.forEach((item, i) => {
+        const fs = document.createElement("fieldset");
+        const lg = document.createElement("legend"); lg.textContent = item; fs.appendChild(lg);
+        const sc = document.createElement("div"); sc.className = "scale";
+        for (let v = 1; v <= 7; v++) {
+          const l = document.createElement("label");
+          const inp = document.createElement("input"); inp.type = "radio"; inp.name = "q" + i; inp.value = v; inp.id = "stias-q" + i + "-" + v; inp.required = true;
+          l.htmlFor = inp.id; l.appendChild(inp); l.appendChild(document.createTextNode(v));
+          sc.appendChild(l);
+        }
+        const ends = document.createElement("div"); ends.className = "scale-ends"; ends.innerHTML = "<span>Strongly disagree</span><span>Strongly agree</span>";
+        fs.appendChild(sc); fs.appendChild(ends); form.appendChild(fs);
+      });
+      const sub = document.createElement("button"); sub.type = "submit"; sub.className = "btn primary"; sub.textContent = "Submit";
+      form.appendChild(sub);
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const vals = STIAS.map((_, i) => { const c = form.querySelector('input[name="q' + i + '"]:checked'); return c ? Number(c.value) : null; });
+        state.survey = vals; state.phase = "done";
+        form.innerHTML = '<span class="decided acc">Responses recorded</span>';
+        renderLog();
+      });
+      bubble.appendChild(form);
+    });
+  }
+
+  function woa() {
+    if (state.initial === null || state.final === null) return null;
+    if (state.initial === ADVICE) return "undefined";
+    const raw = (state.final - state.initial) / (ADVICE - state.initial);
+    return { raw, trunc: Math.max(0, Math.min(1, raw)) };
+  }
+
+  function renderInitial() {
+    const card = $("initial-card"); card.classList.remove("nudge");
+    const form = $("initial-form"), done = $("initial-done");
+    if (state.phase === "initial") { form.hidden = false; done.hidden = true; $("initial-input").value = ""; }
+    else { form.hidden = true; done.hidden = false; done.textContent = "Your first estimate: " + state.initial + "/100. Now click the underlined passages."; }
+  }
+
+  function nudgeInitial() {
+    const card = $("initial-card"); card.classList.add("nudge");
+    card.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    $("initial-input").focus();
+  }
+
+  function renderLog() {
+    const body = $("log-body"); body.innerHTML = "";
+    state.rows.forEach((r) => {
+      const tr = document.createElement("tr");
+      [r.n, r.label, r.cat, r.quality, r.decision, (r.ms / 1000).toFixed(1) + " s"].forEach((v) => { const td = document.createElement("td"); td.textContent = v; tr.appendChild(td); });
+      body.appendChild(tr);
+    });
+    if (!state.rows.length) {
+      const tr = document.createElement("tr"); const td = document.createElement("td"); td.colSpan = 6; td.textContent = "No decisions yet. Click an underlined passage in the draft."; tr.appendChild(td); body.appendChild(tr);
+    }
+    const good = ORDER.filter((id) => S[id].quality === "good"), bad = ORDER.filter((id) => S[id].quality === "bad");
+    const accGood = good.filter((id) => state.resolved[id] === "accepted").length;
+    const accBad = bad.filter((id) => state.resolved[id] === "accepted").length;
+    const accAll = ORDER.filter((id) => state.resolved[id] === "accepted").length;
+    const done = state.rows.length;
+    const w = woa();
+    const stats = [
+      [state.initial === null ? "\u2013" : String(state.initial), "First estimate"],
+      [String(ADVICE), "AI overall score"],
+      [state.final === null ? "\u2013" : String(state.final), "Final estimate"],
+      [w === null ? "\u2013" : (w === "undefined" ? "n/a" : w.trunc.toFixed(2)), "WOA"],
+      [done + "/6", "Decided"],
+      [accAll + "/" + done, "Accepted overall"],
+      [accGood + "/" + good.length, "Good accepted"],
+      [accBad + "/" + bad.length, "Bad accepted"],
+      [state.survey ? (state.survey.reduce((a, b) => a + b, 0) / state.survey.length).toFixed(2) : "\u2013", "S-TIAS mean"]
+    ];
+    const box = $("stats"); box.innerHTML = "";
+    stats.forEach(([v, l]) => { const d = document.createElement("div"); d.className = "stat"; const bv = document.createElement("b"); bv.textContent = v; const sl = document.createElement("span"); sl.textContent = l; d.appendChild(bv); d.appendChild(sl); box.appendChild(d); });
+    $("research-cond").textContent = (state.style === "machine" ? "Machine" : "Human-like") + " \u00b7 " + (state.typos ? "Typos" : "Clean");
+  }
+
+  function csv() {
+    const cond = (state.style) + "_" + (state.typos ? "typos" : "clean");
+    const lines = ["order,suggestion_id,passage,type,quality,decision,decision_ms,condition"];
+    state.rows.forEach((r) => lines.push([r.n, r.id, '"' + r.label + '"', r.cat, r.quality, r.decision, r.ms, cond].join(",")));
+    const w = woa();
+    lines.push("first_estimate," + (state.initial === null ? "" : state.initial));
+    lines.push("ai_overall_score," + ADVICE);
+    lines.push("final_estimate," + (state.final === null ? "" : state.final));
+    lines.push("final_estimate_ms," + (state.finalMs === null ? "" : state.finalMs));
+    lines.push("woa_raw," + (w && w !== "undefined" ? w.raw.toFixed(3) : (w === "undefined" ? "undefined" : "")));
+    lines.push("woa_truncated," + (w && w !== "undefined" ? w.trunc.toFixed(3) : (w === "undefined" ? "undefined" : "")));
+    if (state.survey) lines.push("stias," + state.survey.join(","));
+    return lines.join("\n");
+  }
+
+  function start(style, typos, showQ) {
+    state = freshState(style, typos, showQ);
+    thread.innerHTML = "";
+    $("bot-name").textContent = botName();
+    const ha = $("head-avatar"); ha.className = "avatar " + style; ha.textContent = style === "machine" ? "TP" : "J";
+    $("style-machine").setAttribute("aria-pressed", String(style === "machine"));
+    $("style-human").setAttribute("aria-pressed", String(style === "human"));
+    $("typo-clean").setAttribute("aria-pressed", String(!typos));
+    $("typo-sloppy").setAttribute("aria-pressed", String(typos));
+    $("q-hide").setAttribute("aria-pressed", String(!showQ));
+    $("q-show").setAttribute("aria-pressed", String(showQ));
+    renderDoc(); renderInitial(); renderLog();
+  }
+
+  $("style-machine").addEventListener("click", () => start("machine", state.typos, state.showQ));
+  $("style-human").addEventListener("click", () => start("human", state.typos, state.showQ));
+  $("typo-clean").addEventListener("click", () => start(state.style, false, state.showQ));
+  $("typo-sloppy").addEventListener("click", () => start(state.style, true, state.showQ));
+  function setQuality(show) {
+    state.showQ = show;
+    $("q-hide").setAttribute("aria-pressed", String(!show));
+    $("q-show").setAttribute("aria-pressed", String(show));
+    ORDER.forEach((id) => { if (!state.resolved[id]) { const h = $("span-" + id); h.innerHTML = ""; h.appendChild(makeMark(id, S[id])); } });
+  }
+  $("q-hide").addEventListener("click", () => setQuality(false));
+  $("q-show").addEventListener("click", () => setQuality(true));
+  $("initial-form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const v = Number($("initial-input").value);
+    if (!Number.isFinite(v) || v < 0 || v > 100) return;
+    state.initial = Math.round(v); state.phase = "review";
+    doc.classList.remove("locked");
+    renderInitial(); renderLog(); greet();
+  });
+  $("reset").addEventListener("click", () => start(state.style, state.typos, state.showQ));
+  $("copy-csv").addEventListener("click", () => {
+    const text = csv(), st = $("copy-status");
+    const fallback = () => {
+      const ta = document.createElement("textarea"); ta.value = text; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand("copy"); st.textContent = "Copied"; } catch (e) { st.textContent = "Select and copy the log manually"; }
+      ta.remove();
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => { st.textContent = "Copied"; }, fallback);
+    } else { fallback(); }
+  });
+  $("composer").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const inp = $("composer-input"); const val = inp.value.trim(); if (!val) return;
+    const row = document.createElement("div"); row.className = "msg"; row.style.justifyContent = "flex-end";
+    const b = document.createElement("div"); b.className = "bubble"; b.style.borderRadius = "12px 4px 12px 12px"; b.textContent = val;
+    row.appendChild(b); thread.appendChild(row); inp.value = "";
+    addBotMessage((bubble) => {
+      const p = document.createElement("div");
+      p.textContent = state.style === "machine" ? "Free-text input is not supported in this prototype. Select an underlined passage to view its analysis." : "In this prototype I can only talk about the underlined parts. Click one and I’ll walk you through it!";
+      bubble.appendChild(p);
+    });
+  });
+
+  start("machine", false, false);
+})();
+</script>
+</body>
+</html>
