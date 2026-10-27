@@ -204,7 +204,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
           <button type="button" class="rbtn" id="reset">Restart session</button>
         </div>
       </div>
-      <p class="research-note">Every condition shows the same 6 suggestions, a fixed 1.2 s reply delay and the same overall score (68/100). Only the bot’s wording and spelling slips change. Switching a condition restarts the session.</p>
+      <p class="research-note">Every condition shows the same 6 suggestions, a fixed 1.2 s reply delay and the same overall score (76/100). Only the bot’s wording and spelling slips change. Switching a condition restarts the session.</p>
       <div class="stats" id="stats"></div>
       <div class="log">
         <div class="log-head">
@@ -287,36 +287,42 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
   const DOC_TITLE = "Why Misinformation Spreads on Social Media";
   const DOC_BYLINE = "Your draft · Course essay · not yet submitted";
   const PARAS = [
-    ["Social media has changed the way people get news. ", { id: "s1" }, " get most of their news from platforms like TikTok and Instagram. One study found that false news spreads farther and faster than true news on Twitter", { id: "s2" }, "."],
-    [{ id: "s3" }, " Platforms rank posts by how many likes, comments, and shares they get, and false posts are often more surprising, so people react to them more. ", { id: "s4" }],
-    ["People also share posts they are not sure about. ", { id: "s5" }, " For example, some want to warn their friends “just in case.” To fix this problem, ", { id: "s6" }]
+    ["Over the past decade, social media platforms have become one of the main ways young people encounter news. ", { id: "s1" }, " One widely cited study found that false news on Twitter spread “farther, faster, deeper, and more broadly” than true news", { id: "s2" }, "."],
+    ["Part of the reason lies in how platforms decide what to show users. Most feeds rank content by predicted engagement, so posts that provoke strong emotional reactions, such as surprise or outrage, are shown to more people. Because false stories tend to be more novel than true ones, they benefit from this system. ", { id: "s3" }],
+    [{ id: "s5" }, " Users often share posts without carefully checking them, especially when the content confirms what they already believe or seems important to pass on. ", { id: "s4" }],
+    ["Overall, misinformation spreads because of both platform design and user behaviour. ", { id: "s6" }]
   ];
 
   const S = {
-    s1: { cat: "concise", quality: "good", label: "Redundant opening",
-      original: "Nowadays, in today’s world, a lot of people", replacement: "Many young adults now",
-      machine: { intro: "Issue detected: redundant phrasing. “Nowadays” and “in today’s world” express the same meaning, and “a lot of people” is vague.", outro: "This reduces word count and specifies the population.", typos: [["same", "smae"], ["reduces", "reudces"]] },
-      human: { intro: "Quick one here: “Nowadays” and “in today’s world” say the same thing, and “a lot of people” is a bit vague.", outro: "It’s shorter and says who you mean.", typos: [["same", "smae"], ["shorter", "shotrer"]] } },
-    s2: { cat: "concise", quality: "bad", label: "Citation in sentence",
+    s1: { cat: "concise", quality: "good", label: "Wordy sentence",
+      original: "This shift is significant because it means that the information people are exposed to is increasingly shaped by the design of the platforms themselves rather than by traditional editorial gatekeepers.",
+      replacement: "As a result, what people see is increasingly shaped by platform design rather than by editors.",
+      machine: { intro: "Issue detected: wordy sentence. The point can be stated in fewer words without losing meaning.", outro: "This keeps the contrast between platform design and editors while cutting the sentence roughly in half.", typos: [["fewer", "fewre"], ["meaning", "meanign"]] },
+      human: { intro: "This sentence makes a good point, but it takes a while to get there.", outro: "Same idea, much tighter, and it still keeps your contrast with editors.", typos: [["while", "whlie"], ["tighter", "tigther"]] } },
+    s2: { cat: "concise", quality: "bad", label: "Citation after quote",
       original: " (Vosoughi et al., 2018)", replacement: "",
-      machine: { intro: "Issue detected: interrupted flow. The parenthetical citation breaks the sentence rhythm. Suggested action: remove it.", outro: "The sentence reads more smoothly without the citation.", typos: [["breaks", "braeks"], ["smoothly", "smoohtly"]] },
-      human: { intro: "This citation kind of breaks up the sentence. I’d just remove it.", outro: "It reads more smoothly, and your point still comes across.", typos: [["breaks", "braeks"], ["smoothly", "smoohtly"]] } },
-    s3: { cat: "clarity", quality: "good", label: "Vague cause",
-      original: "This happens because of algorithms.", replacement: "One reason is engagement-based ranking.",
-      machine: { intro: "Issue detected: vague claim. “Because of algorithms” does not specify which mechanism.", outro: "This names the specific feature explained in the next sentence.", typos: [["specify", "specfiy"], ["explained", "explianed"]] },
-      human: { intro: "“Because of algorithms” is pretty vague. I’d name the actual mechanism.", outro: "That also sets up your next sentence nicely.", typos: [["actual", "actaul"], ["sentence", "sentnece"]] } },
+      machine: { intro: "Issue detected: interrupted flow. The parenthetical citation breaks the rhythm at the end of the paragraph. Suggested action: remove it.", outro: "The quoted finding is well known, so the sentence reads more smoothly without the citation.", typos: [["breaks", "braeks"], ["smoothly", "smoohtly"]] },
+      human: { intro: "The citation kind of breaks up the end of this paragraph. I’d just remove it.", outro: "That finding is pretty well known, so it reads more smoothly without it.", typos: [["breaks", "braeks"], ["smoothly", "smoohtly"]] } },
+    s3: { cat: "clarity", quality: "good", label: "Unclear “This”",
+      original: "This makes it harder for users to tell what is reliable.",
+      replacement: "When emotional, novel content is rewarded with visibility, users find it harder to tell which posts are reliable.",
+      machine: { intro: "Issue detected: unclear reference. “This” does not specify what makes reliability harder to judge.", outro: "Naming the cause links the sentence back to the ranking system described above.", typos: [["specify", "specfiy"], ["described", "descirbed"]] },
+      human: { intro: "It’s not totally clear what “This” refers to here.", outro: "Spelling it out ties the sentence back to your point about ranking.", typos: [["clear", "claer"], ["ranking", "rnaking"]] } },
     s4: { cat: "strength", quality: "bad", label: "Hedged claim",
-      original: "Algorithms may contribute to the spread of false information.", replacement: "Algorithms are the main cause of the spread of false information.",
-      machine: { intro: "Issue detected: low claim strength. Hedged wording reduces persuasive impact.", outro: "A confident claim makes the argument more convincing.", typos: [["wording", "wroding"], ["convincing", "convincnig"]] },
-      human: { intro: "This sentence sounds a bit unsure of itself. I’d make it stronger.", outro: "Owning the claim makes your argument way more convincing.", typos: [["sounds", "sonuds"], ["convincing", "convincnig"]] } },
-    s5: { cat: "develop", quality: "good", label: "Reasons not stated",
-      original: "They do this for many reasons.", replacement: "Some do it to protect others, and some because the post fits what they already believe.",
-      machine: { intro: "Issue detected: underdeveloped point. “For many reasons” does not state any reason.", outro: "This gives the reader concrete reasons.", typos: [["state", "sttae"], ["reader", "raeder"]] },
-      human: { intro: "“For many reasons” doesn’t actually tell the reader any of them. I’d spell them out.", outro: "Much clearer for whoever reads it.", typos: [["actually", "acutally"], ["clearer", "cleaer"]] } },
-    s6: { cat: "clarity", quality: "good", label: "Open-ended fix",
-      original: "platforms should do something about it.", replacement: "platforms could add a short prompt asking users to read an article before sharing it.",
-      machine: { intro: "Issue detected: non-specific recommendation. “Do something about it” does not describe an action.", outro: "This gives a concrete, testable solution.", typos: [["describe", "decsribe"], ["testable", "tetsable"]] },
-      human: { intro: "“Do something about it” is a bit open-ended. I’d suggest an actual fix.", outro: "Now your reader knows exactly what you mean.", typos: [["actual", "actaul"], ["exactly", "exatcly"]] } }
+      original: "Pennycook and Rand (2021) argue that much of this sharing may stem from inattention to accuracy rather than a deliberate choice to spread false information.",
+      replacement: "Pennycook and Rand (2021) prove that this sharing stems from inattention to accuracy, not a deliberate choice to spread false information.",
+      machine: { intro: "Issue detected: low claim strength. Hedged wording (“may stem from”) weakens the paragraph.", outro: "A confident statement makes the evidence sound more convincing.", typos: [["wording", "wroding"], ["convincing", "convincnig"]] },
+      human: { intro: "This sentence sounds a bit unsure of itself. I’d make the claim stronger.", outro: "Stating it confidently makes your evidence way more convincing.", typos: [["sounds", "sonuds"], ["convincing", "convincnig"]] } },
+    s5: { cat: "clarity", quality: "good", label: "Weak transition",
+      original: "People also share misinformation for psychological reasons.",
+      replacement: "Platform design is only part of the explanation; individual psychology also plays a role.",
+      machine: { intro: "Issue detected: weak transition. The paragraph shifts from platform design to user psychology without linking the two.", outro: "This shows the reader how the new point relates to the previous paragraph.", typos: [["shifts", "shfits"], ["reader", "raeder"]] },
+      human: { intro: "This paragraph jumps to a new idea without connecting it to the last one.", outro: "Now the reader can see how your two explanations fit together.", typos: [["jumps", "jupms"], ["reader", "raeder"]] } },
+    s6: { cat: "develop", quality: "good", label: "Vague solution",
+      original: "To address this problem, platforms should take more responsibility for the content they promote.",
+      replacement: "To address this problem, platforms could periodically prompt users to think about accuracy, an approach that Pennycook et al. (2021) found improved the quality of news people shared.",
+      machine: { intro: "Issue detected: non-specific recommendation. “Take more responsibility” does not describe an action.", outro: "This gives a concrete solution and supports it with evidence.", typos: [["describe", "decsribe"], ["supports", "suppotrs"]] },
+      human: { intro: "“Take more responsibility” is a bit open-ended for a closing sentence.", outro: "Now your reader knows exactly what you’re proposing, and it’s backed by a study.", typos: [["closing", "cloisng"], ["exactly", "exatcly"]] } }
   };
   const ORDER = ["s1", "s2", "s3", "s4", "s5", "s6"];
 
@@ -328,10 +334,10 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
     machine: "Final estimate recorded. Please complete the questions below.",
     human: "Thanks! Just a few quick questions below."
   };
-  const ADVICE = 68;
+  const ADVICE = 76;
   const OVERALL = {
-    machine: { intro: "All suggestions processed. Overall assessment of the original draft: 68/100.", outro: "The argument is clear and cites a relevant study, but several claims are vague and the proposed solution is not specific.", typos: [["argument", "arguemnt"], ["several", "sevral"]] },
-    human: { intro: "That\u2019s all of them! Overall, I\u2019d score your original draft 68/100.", outro: "Your argument is clear and you cite a relevant study, but several claims are vague and the solution isn\u2019t specific yet.", typos: [["argument", "arguemnt"], ["several", "sevral"]] }
+    machine: { intro: "All suggestions processed. Overall assessment of the original draft: 76/100.", outro: "The argument is clear and well supported, but a few points are vague and the proposed solution is not specific.", typos: [["argument", "arguemnt"], ["points", "ponits"]] },
+    human: { intro: "That\u2019s all of them! Overall, I\u2019d score your original draft 76/100.", outro: "Your argument is clear and well supported, but a few points are vague and the solution isn\u2019t specific yet.", typos: [["argument", "arguemnt"], ["points", "ponits"]] }
   };
   const STIAS = ["I am confident in the AI assistant.", "The AI assistant is reliable.", "I can trust the AI assistant."];
 
