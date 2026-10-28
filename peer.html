@@ -181,16 +181,14 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
 .typing b { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); animation: blink 1.1s infinite ease-in-out; }
 .typing b:nth-child(2) { animation-delay: .18s; } .typing b:nth-child(3) { animation-delay: .36s; }
 @keyframes blink { 0%, 80%, 100% { opacity: .25; } 40% { opacity: 1; } }
-.think-row { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted); }
-.spin { width: 14px; height: 14px; flex: none; border-radius: 50%; border: 2px solid var(--line); border-top-color: var(--accent); animation: spin .8s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
-.think-bar { height: 4px; border-radius: 999px; background: var(--line); overflow: hidden; width: 180px; max-width: 100%; }
-.think-bar i { display: block; height: 100%; width: 100%; background: var(--accent); transform-origin: left; animation: think-fill 10s linear forwards; }
-@keyframes think-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.thinking { display: flex; align-items: center; min-height: 30px; padding: 0 2px; font-size: 14.5px; }
+.think-text { font-weight: 500; color: transparent; background: linear-gradient(90deg, var(--muted) 0%, var(--muted) 38%, var(--ink) 50%, var(--muted) 62%, var(--muted) 100%); background-size: 260% 100%; -webkit-background-clip: text; background-clip: text; animation: shimmer 1.8s linear infinite; }
+@keyframes shimmer { from { background-position: 100% 0; } to { background-position: 0 0; } }
+@media (prefers-reduced-motion: reduce) { .think-text { animation: none; background: none; color: var(--muted); } }
 .chat-foot { border-top: 1px solid var(--line); padding: 10px 12px; font-size: 12.5px; color: var(--muted); }
 .thanks { text-align: center; padding-block: 56px; justify-items: center; }
 .thanks h1 { font-size: 26px; }
-@media (prefers-reduced-motion: reduce) { .typing b, .spin, .think-bar i { animation: none; } .typing b { opacity: .6; } .rrow, .research > summary::after { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .typing b { animation: none; } .typing b { opacity: .6; } .rrow, .research > summary::after { transition: none; } }
 </style>
 </head>
 <body>
@@ -522,7 +520,7 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
   function thinking() {
     enqueue((done) => {
       const row = el("div", "msg"), b = el("div", "bubble"); b.setAttribute("aria-label", "Assistant is thinking");
-      b.innerHTML = '<div class="think-row"><span class="spin" aria-hidden="true"></span><span>Thinking…</span></div><div class="think-bar"><i></i></div>';
+      b.className = "thinking"; b.innerHTML = '<span class="think-text">Thinking…</span>';
       row.appendChild(avatarEl()); row.appendChild(b); thread.appendChild(row); scrollDown();
       const token = state;
       setTimeout(() => { if (token !== state) return; row.remove(); done(); }, THINK_MS);
