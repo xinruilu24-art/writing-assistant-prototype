@@ -220,11 +220,11 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
           <section class="note">
             <h3>Suggested questions</h3>
             <ul>
-              <li class="nq">How should I spread this over the week?</li>
-              <li class="nq">Where should I start the draft?</li>
-              <li class="nq">What should I check when I proofread?</li>
+              <li class="nq">What is this estimate based on?</li>
+              <li class="nq">How long is that per paragraph?</li>
+              <li class="nq">Does that include breaks?</li>
             </ul>
-            <p class="k">They ask how to do the work, not whether the estimate is right, and the answers contain no numbers. So they add no argument for or against the recommendation; they only give the bot more turns in which its style and spelling slips show.</p>
+            <p class="k">Each question gives the participant something to judge the recommendation with: what it is based on, what it means per paragraph, and what it counts. The answers explain the numbers but never change them and never just insist the estimate is right. The content is the same in every condition, so any extra persuasion is equal across conditions.</p>
           </section>
           <section class="note">
             <h3>Scores and WOA</h3>
@@ -328,17 +328,18 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
     human: { text: "Hi, I\u2019m Jordan! \ud83d\udc4b || So you\u2019ve already read all three sources, taken notes and made an outline. Nice start. || What\u2019s left is the draft, the citations and references, and a final proofread.", typos: [["start", "strat"], ["final", "fianl"]] }
   };
   const FOLLOW = [
-    // Questions are about HOW to do the work, never about whether the estimate is right,
-    // so the answers add no new arguments or numbers between the advice and the final estimate.
-    { id: "schedule", q: "How should I spread this over the week?",
-      machine: { text: "Recommended schedule: drafting across two or three sessions early in the week, citations and references once the draft is complete, revising and proofreading on a separate day before the deadline.", typos: [["sessions", "sesisons"], ["deadline", "deadilne"]] },
-      human: { text: "I\u2019d start drafting early in the week and split it over two or three sessions. || Then do the citations and references once the draft is done, and keep revising and proofreading for a separate day before it\u2019s due.", typos: [["early", "ealry"], ["keep", "kepe"]] } },
-    { id: "start", q: "Where should I start the draft?",
-      machine: { text: "Start with the body paragraphs, since the outline already lists the three main points. Write the introduction after the body is complete; the thesis is easier to frame once the argument is drafted.", typos: [["already", "alerady"], ["frame", "farme"]] },
-      human: { text: "I\u2019d start with the body paragraphs, since your outline already has your three main points. || Leave the introduction for last. It\u2019s much easier to write once you know exactly what the body says.", typos: [["already", "alerady"], ["exactly", "exatcly"]] } },
-    { id: "proofread", q: "What should I check when I proofread?",
-      machine: { text: "Proofreading checklist: every quote has an in-text citation, every in-text citation appears in the reference list, and the essay is read aloud to identify unclear sentences.", typos: [["checklist", "chekclist"], ["identify", "idnetify"]] },
-      human: { text: "Make sure every quote has a citation and that every citation shows up in your reference list. || Then read it out loud. Clunky sentences are way easier to hear than to see.", typos: [["Make", "Maek"], ["easier", "eaiser"]] } }
+    // Each question helps the participant judge the recommendation: what it is based on, what it
+    // means in a unit they know (one paragraph), and what it counts. Answers explain the numbers;
+    // they never change them and never just insist the estimate is right.
+    { id: "basis", q: "What is this estimate based on?",
+      machine: { text: "Basis: the remaining work. Drafting converts the outline into five paragraphs and integrates three sources ({D} hours). Citations and references cover in-text citations and a formatted reference list ({C} hours). Revising and proofreading is one full pass ({R} hours).", typos: [["remaining", "reamining"], ["formatted", "fromatted"]] },
+      human: { text: "It\u2019s based on what you still have left. || Turning the outline into five paragraphs with three sources is the big one ({D} hours). In-text citations plus a formatted reference list take {C} hours, and one full pass to revise and proofread takes {R} hours.", typos: [["based", "bsaed"], ["formatted", "fromatted"]] } },
+    { id: "paragraph", q: "How long is that per paragraph?",
+      machine: { text: "Drafting: {D} hours across five paragraphs, approximately {P} per paragraph, including the time to integrate the sources.", typos: [["approximately", "approxiamtely"], ["integrate", "intergate"]] },
+      human: { text: "About {P} a paragraph. || That\u2019s {D} hours over five paragraphs, and it includes the time to work your sources in.", typos: [["includes", "inculdes"], ["sources", "soucres"]] } },
+    { id: "breaks", q: "Does that include breaks?",
+      machine: { text: "No. The estimate covers focused working time only. Breaks and time between sessions are not included.", typos: [["focused", "foucsed"], ["between", "bewteen"]] },
+      human: { text: "Nope, that\u2019s just the time you\u2019re actually working. || Breaks and the time between sessions are on top of that.", typos: [["actually", "acutally"], ["between", "bewteen"]] } }
   ];
   const $ = (id) => document.getElementById(id);
   const half = (x) => Math.round(x * 2) / 2;
@@ -374,7 +375,9 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
   function avatar() { return el("span", "avatar " + state.style, state.style === "machine" ? "TP" : "J"); }
 
   const num = (x) => (Number.isInteger(x) ? String(x) : x.toFixed(1));
-  function fill(t) { return t.replace("{T}", num(state.advice)).replace("{D}", num(state.parts[0])).replace("{C}", num(state.parts[1])).replace("{R}", num(state.parts[2])); }
+  // {P}: drafting time per paragraph (five paragraphs): minutes rounded to 5, or hours once it reaches 90 minutes.
+  function perParagraph() { const m = Math.max(5, Math.round(state.parts[0] * 12 / 5) * 5); return m < 90 ? m + " minutes" : num(half(m / 60)) + " hours"; }
+  function fill(t) { return t.replace("{P}", perParagraph()).replace("{T}", num(state.advice)).replace("{D}", num(state.parts[0])).replace("{C}", num(state.parts[1])).replace("{R}", num(state.parts[2])); }
 
   function userSay(text) { const me = el("div", "msg me"); me.appendChild(el("div", "bubble", text)); $("thread").appendChild(me); }
 
