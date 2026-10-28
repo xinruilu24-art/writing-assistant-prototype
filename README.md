@@ -1,14 +1,9 @@
-# Campus Writing Assistant (prototype)
+# Study 3 prototypes
 
-Clickable prototypes of a writing-assistant task for a study on trust in AI chatbots.
+Clickable prototypes for a study on trust in AI chatbots. Each page has a researcher view (hidden from participants) to switch the chatbot's style (machine / human-like) and spelling slips (clean / typos) and to see the data that would be recorded.
 
-| Version | Link | What it measures |
+| Task | Link | Main measure |
 |---|---|---|
-| Without WOA | https://xinruilu24-art.github.io/writing-assistant-prototype/ | Accept / dismiss for each suggestion |
-| With WOA | https://xinruilu24-art.github.io/writing-assistant-prototype/woa.html | Revise -> participant estimates the revised essay's score -> AI estimate -> final estimate, plus accept / dismiss |
-
-- Task: revise the essay so it scores higher on a 5-criterion rubric (Structure, Evidence, Analysis, Conclusion, Writing; 20 points each).
-- The original essay scores 60/100. Each of the 6 suggestions is tied to a rubric item: 4 good ones each add 10 points; 2 bad ones each cost 10 points (both cost points on Evidence: removing a quotation's citation, and turning "may" into "prove").
-- In the WOA version, the AI's estimate counts only the good suggestions accepted, so it is 10 points too high for every bad suggestion accepted.
-- Right: a chatbot that explains each suggestion; the participant accepts or dismisses it.
-- Researcher view: switch the bot's style (machine / human-like) and spelling slips (clean / typos), show good / bad labels, and see a decision log that can be copied as CSV.
+| Writing assistant, with WOA (5 pages) | https://xinruilu24-art.github.io/writing-assistant-prototype/woa.html | First score of the essay -> assistant's score (60) and 6 suggestions -> second score; WOA, plus accept / dismiss |
+| Writing assistant, without WOA | https://xinruilu24-art.github.io/writing-assistant-prototype/ | Accept / dismiss for each suggestion |
+| Assignment time estimate | https://xinruilu24-art.github.io/writing-assistant-prototype/time.html | First estimate -> assistant recommends 1.5 x the first estimate -> final estimate; WOA, plus 3 S-TIAS items |
