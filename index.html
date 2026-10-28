@@ -4,17 +4,18 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<title>Campus Writing Assistant</title>
+<title>Peer Review Grading</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
 <style>
-/* Layout: researcher panel on top, then a two-pane workspace (essay + rubric left, assistant right) that stacks on phones. */
+/* Layout: researcher panel on top; below it one page at a time:
+   1 scenario, 2 essay + rubric scoring, 3 essay + rubric score panel + grading assistant, 4 thanks. */
 :root {
   --bg: #eceff3; --surface: #ffffff; --surface-2: #f6f8fa; --ink: #1c2330; --muted: #5b6677; --line: #d5dbe3;
   --accent: #2b55c9; --accent-ink: #ffffff; --bubble-bot: #f1f4f8; --bubble-line: #dfe4eb;
-  --c-clarity: #2f6fe0; --c-concise: #16916a; --c-strength: #8b4fd6; --c-develop: #d07a1e;
+  --c-structure: #2f6fe0; --c-evidence: #16916a; --c-analysis: #8b4fd6; --c-conclusion: #d07a1e; --c-writing: #c23d7a;
   --good: #16865c; --bad: #c2413a; --flash: #fff3c4;
   --research: #24304a; --research-ink: #e8edf7; --research-muted: #a9b4c9; --research-line: #3a4660;
   --font-ui: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
@@ -24,7 +25,7 @@
   :root:not([data-theme="light"]) {
     --bg: #12161d; --surface: #1a2029; --surface-2: #202733; --ink: #e4e9f1; --muted: #9aa6b8; --line: #2f3846;
     --accent: #7d9cff; --accent-ink: #0f1420; --bubble-bot: #232b38; --bubble-line: #323c4b;
-    --c-clarity: #6f9dff; --c-concise: #3fc08f; --c-strength: #b48aff; --c-develop: #f0a24e;
+    --c-structure: #6f9dff; --c-evidence: #3fc08f; --c-analysis: #b48aff; --c-conclusion: #f0a24e; --c-writing: #f07ab0;
     --good: #45c48c; --bad: #f07a72; --flash: #4a4220;
     --research: #0b0f16; --research-ink: #dfe6f3; --research-muted: #8e9ab0; --research-line: #283246;
     color-scheme: dark;
@@ -33,16 +34,22 @@
 :root[data-theme="dark"] {
   --bg: #12161d; --surface: #1a2029; --surface-2: #202733; --ink: #e4e9f1; --muted: #9aa6b8; --line: #2f3846;
   --accent: #7d9cff; --accent-ink: #0f1420; --bubble-bot: #232b38; --bubble-line: #323c4b;
-  --c-clarity: #6f9dff; --c-concise: #3fc08f; --c-strength: #b48aff; --c-develop: #f0a24e;
+  --c-structure: #6f9dff; --c-evidence: #3fc08f; --c-analysis: #b48aff; --c-conclusion: #f0a24e; --c-writing: #f07ab0;
   --good: #45c48c; --bad: #f07a72; --flash: #4a4220;
   --research: #0b0f16; --research-ink: #dfe6f3; --research-muted: #8e9ab0; --research-line: #283246;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
 body { background: var(--bg); color: var(--ink); font-family: var(--font-ui); font-size: 15px; line-height: 1.5; }
-.wrap { max-width: 1240px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 16px 40px; display: grid; gap: 16px; }
+.wrap { max-width: 1360px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 16px 40px; display: grid; gap: 16px; }
 button { font: inherit; cursor: pointer; }
 button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+[data-crit="structure"] { --cc: var(--c-structure); }
+[data-crit="evidence"] { --cc: var(--c-evidence); }
+[data-crit="analysis"] { --cc: var(--c-analysis); }
+[data-crit="conclusion"] { --cc: var(--c-conclusion); }
+[data-crit="writing"] { --cc: var(--c-writing); }
+.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--cc); flex: none; display: inline-block; }
 
 /* Researcher panel */
 .research { background: var(--research); color: var(--research-ink); border-radius: 12px; }
@@ -63,7 +70,7 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
 .seg button[aria-pressed="true"] { background: var(--research-ink); color: var(--research); font-weight: 600; }
 .rbtn { background: transparent; color: var(--research-ink); border: 1px solid var(--research-line); border-radius: 8px; padding: 6px 12px; font-size: 13px; }
 .rbtn:hover { border-color: var(--research-muted); }
-.research-note { margin: 0; font-size: 12.5px; color: var(--research-muted); max-width: 90ch; }
+.research-note { margin: 0; font-size: 12.5px; color: var(--research-muted); max-width: 110ch; }
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 8px; }
 .stat { border: 1px solid var(--research-line); border-radius: 8px; padding: 8px 10px; display: grid; gap: 1px; }
 .stat b { font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
@@ -76,96 +83,112 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
 .log th, .log td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--research-line); white-space: nowrap; }
 .log th { color: var(--research-muted); font-weight: 500; font-size: 12px; }
 
-/* Workspace */
-.workspace { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr); gap: 16px; align-items: start; }
-@media (max-width: 860px) { .workspace { grid-template-columns: minmax(0, 1fr); } }
+/* Pages */
+.page { display: grid; gap: 16px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 22px clamp(18px, 4vw, 40px); display: grid; gap: 14px; min-width: 0; }
+.card h1 { font-size: 21px; margin: 0; text-wrap: balance; }
+.card > p { margin: 0; max-width: 70ch; }
+.narrow { max-width: 820px; width: 100%; justify-self: center; }
+.nav { display: flex; justify-content: flex-end; gap: 10px; align-items: center; flex-wrap: wrap; }
+.btn { border-radius: 8px; padding: 8px 18px; font-size: 14px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.lead { font-size: 14.5px; color: var(--muted); margin: 0; }
+
 .pane { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; min-width: 0; display: flex; flex-direction: column; }
-.pane-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.pane-head { display: flex; align-items: center; justify-content: space-between; gap: 6px 12px; padding: 12px 16px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
 .pane-title { font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 8px; }
 .pane-sub { font-size: 12.5px; color: var(--muted); }
-.counter { font-size: 12px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: 2px 10px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.pane-body { padding: 22px clamp(18px, 3vw, 36px); display: grid; gap: 16px; }
 
-.task { margin: 16px clamp(16px, 3.5vw, 40px) 0; border: 1px solid var(--line); background: var(--surface-2); border-radius: 10px; padding: 14px 16px; display: grid; gap: 10px; }
-.task h2 { font-size: 15px; margin: 0; }
-.task > p { margin: 0; font-size: 14px; }
-.rubric summary { cursor: pointer; font-size: 13.5px; font-weight: 600; color: var(--accent); }
-.rubric-scroll { overflow-x: auto; }
-.rubric table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 13.5px; }
-.rubric th, .rubric td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
-.rubric th { color: var(--muted); font-weight: 500; font-size: 12.5px; }
-.rubric td.code, .rubric td.pts { white-space: nowrap; font-variant-numeric: tabular-nums; }
-.rubric td.code { font-weight: 600; }
-.rubric tfoot td { font-weight: 600; }
-
-.doc { padding: 22px clamp(18px, 4vw, 44px) 26px; font-family: var(--font-doc); font-size: 17px; line-height: 1.75; max-width: 72ch; }
-.doc h1 { font-family: var(--font-doc); font-size: 23px; line-height: 1.25; margin: 0 0 4px; text-wrap: balance; font-weight: 600; }
+/* Essay */
+.doc { font-family: var(--font-doc); font-size: 17px; line-height: 1.75; max-width: 72ch; }
+.doc h2 { font-family: var(--font-doc); font-size: 22px; line-height: 1.25; margin: 0 0 4px; text-wrap: balance; font-weight: 600; }
 .doc .byline { font-family: var(--font-ui); font-size: 13px; color: var(--muted); margin: 0 0 16px; }
 .doc p { margin: 0 0 14px; }
-.mark { background: none; border: 0; padding: 0; color: inherit; font: inherit; text-align: left; text-decoration: underline; text-decoration-thickness: 2.5px; text-underline-offset: 4px; text-decoration-color: var(--mc); border-radius: 3px; cursor: pointer; }
-.mark:hover, .mark.active { background: color-mix(in srgb, var(--mc) 14%, transparent); }
-.mark[data-cat="clarity"] { --mc: var(--c-clarity); }
-.mark[data-cat="concise"] { --mc: var(--c-concise); }
-.mark[data-cat="strength"] { --mc: var(--c-strength); }
-.mark[data-cat="develop"] { --mc: var(--c-develop); }
-.qtag { font-family: var(--font-ui); font-size: 10.5px; vertical-align: super; margin-left: 2px; font-weight: 600; }
+.doc p:last-child { margin-bottom: 0; }
+.mark:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.mark { -webkit-box-decoration-break: clone; box-decoration-break: clone; text-decoration: underline; text-decoration-style: dashed; text-decoration-thickness: 2px; text-underline-offset: 4px; text-decoration-color: var(--cc); border-radius: 3px; cursor: pointer; }
+.mark:hover, .mark.active { background: color-mix(in srgb, var(--cc) 14%, transparent); }
+.mark.dismissed { text-decoration-style: dotted; text-decoration-color: color-mix(in srgb, var(--cc) 40%, transparent); }
+.badge { display: inline-block; font-family: var(--font-ui); font-size: 11.5px; font-weight: 600; line-height: 1; padding: 3px 6px; border-radius: 999px; margin-left: 4px; vertical-align: 2px; color: #fff; background: var(--cc); white-space: nowrap; }
+.qtag { font-size: 10.5px; vertical-align: super; margin-left: 2px; font-weight: 600; font-family: var(--font-ui); }
 .qtag.good { color: var(--good); } .qtag.bad { color: var(--bad); }
-.changed { background: var(--flash); border-radius: 3px; transition: background 1.6s ease; }
-.changed.settled { background: transparent; }
-.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; padding: 10px 16px 14px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--muted); margin-top: auto; }
-.legend span { display: inline-flex; align-items: center; gap: 6px; }
-.legend i { width: 16px; height: 3px; border-radius: 2px; display: inline-block; }
 
-.steps { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
-.steps li { font-size: 12.5px; border: 1px solid var(--line); background: var(--surface); color: var(--muted); border-radius: 999px; padding: 3px 10px; }
-.steps li.now { border-color: var(--accent); color: var(--accent); font-weight: 600; }
-.steps li.done { color: var(--good); border-color: var(--good); }
-.scorebox { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-.scorebox div { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 8px 10px; display: grid; gap: 2px; }
-.scorebox b { font-size: 18px; font-variant-numeric: tabular-nums; }
-.scorebox span { font-size: 12px; color: var(--muted); }
+/* Rubric side panel (page 2: scoring form; page 3: live scores) */
+.rub-head { font-size: 12.5px; color: var(--muted); padding: 10px 16px 0; margin: 0; }
+.rrow { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 4px 10px; align-items: start; padding: 11px 16px; border-bottom: 1px solid var(--line); transition: background .25s ease; }
+.rrow .dot { margin-top: 6px; }
+.rrow .rname { font-weight: 600; font-size: 14px; }
+.rrow .rtext { font-size: 12.5px; color: var(--muted); line-height: 1.4; }
+.rrow .rscore { display: flex; align-items: baseline; gap: 4px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rrow .rscore input { width: 4.2em; border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font: inherit; font-size: 15px; background: var(--surface); color: var(--ink); text-align: right; font-variant-numeric: tabular-nums; }
+.rrow .rscore input[aria-invalid="true"] { border-color: var(--bad); }
+.rrow .rscore b { font-size: 17px; }
+.rrow .rscore s { color: var(--muted); font-size: 13px; }
+.rrow .rscore small { color: var(--muted); font-size: 12.5px; }
+.rrow.active { background: color-mix(in srgb, var(--cc) 10%, transparent); box-shadow: inset 3px 0 0 var(--cc); }
+.rrow.flash { background: var(--flash); }
+.rtotal { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 12px 16px; font-variant-numeric: tabular-nums; }
+.rtotal span { font-weight: 600; }
+.rtotal .tv { display: flex; align-items: baseline; gap: 6px; }
+.rtotal b { font-size: 24px; }
+.rtotal s { color: var(--muted); font-size: 14px; }
+.rtotal small { color: var(--muted); font-size: 13px; }
+.form-foot { padding: 12px 16px 14px; border-top: 1px solid var(--line); display: grid; gap: 10px; }
+.form-foot .help { font-size: 12.5px; color: var(--muted); }
+
+/* Page 2 and page 3 grids */
+.grade-grid { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(300px, 1fr); gap: 16px; align-items: start; }
+.work-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(250px, .78fr) minmax(320px, 1fr); gap: 16px; align-items: start; }
+.sticky { position: sticky; top: 16px; }
+@media (max-width: 1180px) {
+  .work-grid { grid-template-columns: minmax(0, 1.4fr) minmax(320px, 1fr); }
+  .work-grid .essay-pane { grid-row: span 2; }
+  .work-grid .sticky { position: static; }
+}
+@media (max-width: 860px) {
+  .grade-grid, .work-grid { grid-template-columns: minmax(0, 1fr); }
+  .work-grid .essay-pane { grid-row: auto; }
+  .sticky { position: static; }
+}
 
 /* Chat */
-.chat { display: flex; flex-direction: column; height: min(82vh, 820px); }
-@media (max-width: 860px) { .chat { height: auto; min-height: 520px; } }
+.chat { display: flex; flex-direction: column; height: min(calc(100vh - 32px), 760px); }
+@media (max-width: 1180px) { .chat { height: 560px; } }
 .avatar { width: 30px; height: 30px; flex: none; display: grid; place-items: center; font-size: 12px; font-weight: 600; color: var(--accent-ink); background: var(--accent); }
 .avatar.machine { border-radius: 6px; font-size: 11px; }
 .avatar.human { border-radius: 50%; }
 .thread { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
 .msg { display: flex; gap: 10px; align-items: flex-start; }
+.msg.cont { margin-top: -8px; }
+.msg.cont .avatar { visibility: hidden; }
 .bubble { background: var(--bubble-bot); border: 1px solid var(--bubble-line); border-radius: 4px 12px 12px 12px; padding: 10px 12px; min-width: 0; max-width: 100%; display: grid; gap: 8px; font-size: 14.5px; }
 .bubble.focus { box-shadow: 0 0 0 2px var(--accent); }
 .bubble .who { font-size: 12px; color: var(--muted); font-weight: 500; }
-.bubble .rub { font-size: 12px; font-weight: 600; color: var(--muted); }
-.suggest { border: 1px solid var(--bubble-line); background: var(--surface); border-radius: 8px; padding: 8px 10px; display: grid; gap: 4px; font-family: var(--font-doc); font-size: 15px; }
-.suggest.est { font-family: var(--font-ui); font-size: 14px; }
-.suggest .lab { font-family: var(--font-ui); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
-.suggest del { color: var(--muted); }
-.actions, .est-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-.btn { border-radius: 7px; padding: 6px 14px; font-size: 13.5px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
-.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
-.num { width: 6.5em; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font: inherit; background: var(--surface); color: var(--ink); font-variant-numeric: tabular-nums; }
+.bubble .rub { font-size: 12px; font-weight: 600; color: var(--muted); display: flex; gap: 6px; align-items: baseline; }
+.bubble .rub .dot { width: 8px; height: 8px; flex: none; }
+.ded { border: 1px solid var(--bubble-line); border-left: 4px solid var(--cc); background: var(--surface); border-radius: 8px; padding: 8px 10px; display: grid; gap: 2px; }
+.ded .lab { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.ded .amt { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+.ded .amt b { font-size: 20px; font-variant-numeric: tabular-nums; }
+.ded .amt span { font-size: 13.5px; color: var(--muted); }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.actions .btn { padding: 6px 14px; font-size: 13.5px; }
 .decided { font-size: 12.5px; font-weight: 600; }
 .decided.acc { color: var(--good); } .decided.dis { color: var(--muted); }
 .typing { display: inline-flex; gap: 4px; padding: 12px 14px; }
 .typing b { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); animation: blink 1.1s infinite ease-in-out; }
 .typing b:nth-child(2) { animation-delay: .18s; } .typing b:nth-child(3) { animation-delay: .36s; }
 @keyframes blink { 0%, 80%, 100% { opacity: .25; } 40% { opacity: 1; } }
-.survey { display: grid; gap: 10px; }
-.survey fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 6px; }
-.survey legend { font-size: 14px; padding: 0; }
-.scale { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
-.scale label { display: grid; place-items: center; gap: 2px; font-size: 12px; border: 1px solid var(--line); border-radius: 6px; padding: 4px 0; background: var(--surface); cursor: pointer; }
-.scale input { margin: 0; }
-.scale-ends { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--muted); }
-.composer { border-top: 1px solid var(--line); padding: 10px 12px; display: flex; gap: 8px; }
-.composer input { flex: 1; min-width: 0; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font: inherit; background: var(--surface-2); color: var(--ink); }
 .thinking { display: flex; align-items: center; min-height: 30px; padding: 0 2px; font-size: 14.5px; }
 .think-text { font-weight: 500; color: transparent; background: linear-gradient(90deg, var(--muted) 0%, var(--muted) 38%, var(--ink) 50%, var(--muted) 62%, var(--muted) 100%); background-size: 260% 100%; -webkit-background-clip: text; background-clip: text; animation: shimmer 1.8s linear infinite; }
 @keyframes shimmer { from { background-position: 100% 0; } to { background-position: 0 0; } }
 @media (prefers-reduced-motion: reduce) { .think-text { animation: none; background: none; color: var(--muted); } }
-.msg.cont { margin-top: -8px; }
-.msg.cont .avatar { visibility: hidden; }
-@media (prefers-reduced-motion: reduce) { .typing b { animation: none; opacity: .6; } .changed { transition: none; } .research > summary::after { transition: none; } }
+.chat-foot { border-top: 1px solid var(--line); padding: 10px 12px; font-size: 12.5px; color: var(--muted); }
+.thanks { text-align: center; padding-block: 56px; justify-items: center; }
+.thanks h1 { font-size: 26px; }
+@media (prefers-reduced-motion: reduce) { .typing b { animation: none; } .typing b { opacity: .6; } .rrow, .research > summary::after { transition: none; } }
 </style>
 </head>
 <body>
@@ -173,8 +196,8 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
   <details class="research" id="research" open>
     <summary>
       <span class="research-title">Researcher view</span>
-      <span class="research-cond" id="research-version"></span>
       <span class="research-cond" id="research-cond">Machine · Clean</span>
+      <span class="research-cond" id="research-page">Page 1 of 4</span>
       <span class="research-hint">Hidden from participants</span>
     </summary>
     <div class="research-body">
@@ -191,17 +214,17 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
             <button type="button" id="typo-sloppy" aria-pressed="false">Typos</button>
           </div>
         </div>
-        <div class="ctl"><span class="ctl-label">Good / bad labels</span>
+        <div class="ctl"><span class="ctl-label">Justified / unjustified labels</span>
           <div class="seg" role="group" aria-label="Suggestion quality labels">
             <button type="button" id="q-hide" aria-pressed="true">Hidden</button>
             <button type="button" id="q-show" aria-pressed="false">Shown</button>
           </div>
         </div>
         <div class="ctl"><span class="ctl-label">Session</span>
-          <button type="button" class="rbtn" id="reset">Restart session</button>
+          <button type="button" class="rbtn" id="reset">Restart from page 1</button>
         </div>
       </div>
-      <p class="research-note" id="research-note"></p>
+      <p class="research-note">Pages: 1 scenario → 2 Kevin’s essay with the rubric beside it; the participant scores each criterion out of 20 (first score) → 3 the same essay with 6 underlined passages, a live rubric score panel and the grading assistant (no free text). Each suggestion proposes a deduction on one criterion; accepting takes those points off the participant’s own score for that criterion → 4 thanks. Four deductions are justified (Structure −4, Analysis −4, Conclusion −3, Writing −3); two are not (Evidence −3: the quote is cited right after it; Analysis −3: the reason is given in the same sentence). The assistant’s suggested total = first score − 20 (each criterion floored at 0). Final score = first score − accepted deductions. WOA = (final − first) ÷ (suggested − first), i.e. accepted points ÷ 20, so it is always between 0 and 1. Timing is the same in every condition: 10 s “Thinking…” before the first message, then 1.2 s per reply. Human-like replies arrive as 2–3 short messages 0.9 s apart (the last asks “Do you want to accept this deduction?”); the machine sends the same content as one message after the same total wait. Only the bot’s wording and spelling slips change, never the numbers or rubric terms.</p>
       <div class="stats" id="stats"></div>
       <div class="log">
         <div class="log-head">
@@ -211,7 +234,7 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
         </div>
         <div class="table-scroll">
           <table>
-            <thead><tr><th>#</th><th>Passage</th><th>Rubric</th><th>Quality</th><th>Decision</th><th>Score effect</th><th>Time to decide</th></tr></thead>
+            <thead><tr><th>#</th><th>Passage</th><th>Criterion</th><th>Quality</th><th>Deduction</th><th>Decision</th><th>Score change</th><th>Time to decide</th></tr></thead>
             <tbody id="log-body"></tbody>
           </table>
         </div>
@@ -219,241 +242,262 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
     </div>
   </details>
 
-  <div class="workspace">
-    <section class="pane" aria-label="Essay">
-      <div class="pane-head">
-        <div>
-          <div class="pane-title">Essay</div>
-          <div class="pane-sub">Click an underlined passage to see the assistant's suggestion.</div>
-        </div>
-        <span class="counter" id="counter">6 suggestions</span>
-      </div>
-      <div class="task">
-        <h2>Your task</h2>
-        <p id="task-text"></p>
-        <ol class="steps" id="steps" aria-label="Steps"></ol>
-        <div class="scorebox" id="scorebox" hidden>
-          <div><b id="sb-own">–</b><span>Your estimate</span></div>
-          <div><b id="sb-ai">–</b><span>Assistant’s estimate</span></div>
-          <div><b id="sb-final">–</b><span>Your final estimate</span></div>
-        </div>
-        <details class="rubric" open>
-          <summary>Marking rubric (100 points)</summary>
-          <div class="rubric-scroll">
-            <table>
-              <thead><tr><th>Criterion</th><th>Full points if the essay…</th><th>Points</th></tr></thead>
-              <tbody id="rubric-body"></tbody>
-              <tfoot><tr><td></td><td>Total</td><td class="pts">100</td></tr></tfoot>
-            </table>
-          </div>
-        </details>
-      </div>
-      <article class="doc" id="doc"></article>
-      <div class="legend" aria-label="Suggestion types">
-        <span><i style="background:var(--c-clarity)"></i>Clarity</span>
-        <span><i style="background:var(--c-concise)"></i>Concision</span>
-        <span><i style="background:var(--c-strength)"></i>Claim strength</span>
-        <span><i style="background:var(--c-develop)"></i>Development</span>
-      </div>
-    </section>
+  <!-- Page 1: scenario -->
+  <section class="page" id="p1">
+    <div class="card narrow">
+      <h1>Peer review</h1>
+      <p>You are a student in a university course. For the essay assignment, each student grades one classmate’s essay using the course rubric, and peer grades count toward part of the final essay grade.</p>
+      <p>The assignment asked students to write a short argumentative essay, using academic sources, on why misinformation spreads on social media.</p>
+      <p>You have been assigned to grade <b>Kevin’s</b> essay.</p>
+      <div class="nav"><button type="button" class="btn primary" id="p1-next">Next</button></div>
+    </div>
+  </section>
 
-    <section class="pane chat" aria-label="Assistant">
-      <div class="pane-head">
-        <div class="pane-title"><span class="avatar machine" id="head-avatar">TP</span><span id="bot-name">TextProcessor-Module</span></div>
-        <span class="pane-sub">Campus Academic Assistant (prototype)</span>
-      </div>
-      <div class="thread" id="thread" aria-live="polite"></div>
-      <form class="composer" id="composer">
-        <input id="composer-input" type="text" placeholder="Ask about a suggestion…" autocomplete="off" aria-label="Message the assistant">
-        <button type="submit" class="btn primary">Send</button>
-      </form>
-    </section>
-  </div>
+  <!-- Page 2: essay + rubric scoring -->
+  <section class="page" id="p2" hidden>
+    <div class="grade-grid">
+      <section class="pane" aria-label="Kevin’s essay">
+        <div class="pane-head"><div class="pane-title">Kevin’s essay</div></div>
+        <div class="pane-body"><article class="doc" id="doc-plain"></article></div>
+      </section>
+      <section class="pane sticky" aria-label="Rubric">
+        <div class="pane-head"><div class="pane-title">Rubric</div><span class="pane-sub">Score each criterion out of 20</span></div>
+        <p class="rub-head">Full points if the essay…</p>
+        <form id="grade-form" novalidate></form>
+        <div class="rtotal"><span>Total</span><span class="tv"><b id="form-total">–</b><small>/ 100</small></span></div>
+        <div class="form-foot">
+          <span class="help">Whole numbers from 0 to 20.</span>
+          <div class="nav"><button type="button" class="btn primary" id="p2-next" disabled>Next</button></div>
+        </div>
+      </section>
+    </div>
+  </section>
+
+  <!-- Page 3: essay + live rubric scores + grading assistant -->
+  <section class="page" id="p3" hidden>
+    <p class="lead">Before submitting, you open the AI grading assistant on the peer-review platform.</p>
+    <div class="work-grid">
+      <section class="pane essay-pane" aria-label="Kevin’s essay">
+        <div class="pane-head"><div class="pane-title">Kevin’s essay</div><span class="pane-sub" id="counter">6 flagged</span></div>
+        <div class="pane-body">
+          <article class="doc" id="doc"></article>
+          <div class="nav"><button type="button" class="btn primary" id="p3-next" disabled>Submit grade</button></div>
+        </div>
+      </section>
+      <section class="pane sticky" aria-label="Your grade">
+        <div class="pane-head"><div class="pane-title">Your grade for Kevin</div><span class="pane-sub">Rubric</span></div>
+        <div id="score-rows"></div>
+        <div class="rtotal"><span>Total</span><span class="tv" id="score-total"></span></div>
+      </section>
+      <section class="pane chat sticky" aria-label="Grading assistant">
+        <div class="pane-head">
+          <div class="pane-title"><span class="avatar machine" id="head-avatar">TP</span><span id="bot-name">TextProcessor-Module</span></div>
+          <span class="pane-sub">Peer Review Grading Assistant (prototype)</span>
+        </div>
+        <div class="thread" id="thread" aria-live="polite"></div>
+        <div class="chat-foot">Click an underlined passage in the essay to see the assistant’s suggestion.</div>
+      </section>
+    </div>
+  </section>
+
+  <!-- Page 4: thanks -->
+  <section class="page" id="p4" hidden>
+    <div class="card narrow thanks">
+      <h1>Thank you for participating</h1>
+      <p>Your responses have been recorded. You can now close this page.</p>
+    </div>
+  </section>
 </div>
 
 <script>
 (function () {
-  const MODE = "basic";
-  const DELAY = 1200;
-  const BASE = 60;
-  const CAT_LABEL = { clarity: "Clarity", concise: "Concision", strength: "Claim strength", develop: "Development" };
-
+  const DELAY = 1200, THINK_MS = 10000, GAP = 900, MAX = 20;
   const RUBRIC = [
-    { key: "structure", name: "Structure", text: "has a clear thesis, and each paragraph links back to it", pts: 20 },
-    { key: "evidence", name: "Evidence", text: "cites every quote and never overstates a source", pts: 20 },
-    { key: "analysis", name: "Analysis", text: "explains how each cause works, with no vague \u201cthis\u201d or \u201cit\u201d", pts: 20 },
-    { key: "conclusion", name: "Conclusion", text: "sums up both causes and offers a specific, evidence-based fix", pts: 20 },
-    { key: "writing", name: "Writing", text: "is concise and formal", pts: 20 }
+    { key: "structure", name: "Structure", text: "has a clear thesis, and each paragraph links back to it" },
+    { key: "evidence", name: "Evidence", text: "cites every quote and never overstates a source" },
+    { key: "analysis", name: "Analysis", text: "explains how each cause works, with no vague “this” or “it”" },
+    { key: "conclusion", name: "Conclusion", text: "sums up both causes and offers a specific, evidence-based fix" },
+    { key: "writing", name: "Writing", text: "is concise and formal" }
   ];
   const RUB = {}; RUBRIC.forEach((r) => { RUB[r.key] = r; });
 
   const DOC_TITLE = "Why Misinformation Spreads on Social Media";
-  const DOC_BYLINE = "Course essay · draft";
   const PARAS = [
-    ["Over the past decade, social media platforms have become one of the main ways young people encounter news. ", { id: "s1" }, " One widely cited study found that false news on Twitter spread “farther, faster, deeper, and more broadly” than true news", { id: "s2" }, ". This essay argues that misinformation spreads because of both platform design and the way users engage with content."],
-    ["Part of the reason lies in how platforms decide what to show users. Most feeds rank content by predicted engagement, so posts that provoke strong emotional reactions are shown to more people. Brady et al. (2017) found that each moral-emotional word in a tweet increased its retweet rate by about 20 percent. Because false stories tend to be more novel and emotional than true ones, they benefit from this system. ", { id: "s3" }],
-    [{ id: "s5" }, " Users often share posts without carefully checking them, especially when the content confirms what they already believe or seems important to pass on. ", { id: "s4" }],
-    ["Overall, misinformation spreads because of both platform design and user behaviour. ", { id: "s6" }]
+    ["Over the past decade, social media platforms have become one of the main ways young people encounter news. ", { id: "wordy" }, " ", { id: "cite" }, " (Vosoughi et al., 2018). This essay argues that misinformation spreads because of both platform design and the way users engage with content."],
+    ["Part of the reason lies in how platforms decide what to show users. Most feeds rank content by predicted engagement, so posts that provoke strong emotional reactions are shown to more people. Brady et al. (2017) found that each moral-emotional word in a tweet increased its retweet rate by about 20 percent. Because false stories tend to be more novel and emotional than true ones, they benefit from this system. ", { id: "vague" }],
+    [{ id: "topic" }, " ", { id: "why" }, " Pennycook and Rand (2021) argue that much of this sharing may stem from inattention to accuracy rather than a deliberate choice to spread false information."],
+    ["Overall, misinformation spreads because of both platform design and user behaviour. ", { id: "fix" }]
   ];
 
+  // Each suggestion: one criterion, one deduction. Typos never touch numbers or rubric terms.
   const S = {
-    s1: { cat: "concise", quality: "good", label: "Wordy sentence", rubric: "writing", sub: "concise", effect: 10,
-      original: "This shift is significant because it means that the information people are exposed to is increasingly shaped by the design of the platforms themselves rather than by traditional editorial gatekeepers.",
-      replacement: "As a result, what people see is increasingly shaped by platform design rather than by editors.",
-      machine: { intro: "Issue detected: wordy sentence. The point can be stated in fewer words without losing meaning.", outro: "This keeps the contrast between platform design and editors while cutting the sentence roughly in half.", typos: [["fewer", "fewre"], ["meaning", "meanign"]] },
-      human: { intro: "This sentence makes a good point, but it takes a while to get there.", outro: "Same idea, much tighter, and it still keeps your contrast with editors.", typos: [["while", "whlie"], ["tighter", "tigther"]] } },
-    s2: { cat: "concise", quality: "bad", label: "Citation after quote", rubric: "writing", sub: "concise", effect: -10, violates: "evidence: every quote cited",
-      original: " (Vosoughi et al., 2018)", replacement: "",
-      machine: { intro: "Issue detected: interrupted flow. The parenthetical citation breaks the rhythm of the sentence. Suggested action: remove it.", outro: "The quoted finding is well known, so the sentence reads more smoothly without the citation.", typos: [["breaks", "braeks"], ["smoothly", "smoohtly"]] },
-      human: { intro: "The citation kind of breaks up this sentence. I’d just remove it.", outro: "That finding is pretty well known, so it reads more smoothly without it.", typos: [["breaks", "braeks"], ["smoothly", "smoohtly"]] } },
-    s3: { cat: "clarity", quality: "good", label: "Unclear “This”", rubric: "analysis", sub: "no vague \u201cthis\u201d", effect: 10,
-      original: "This makes it harder for users to tell what is reliable.",
-      replacement: "When emotional, novel content is rewarded with visibility, users find it harder to tell which posts are reliable.",
-      machine: { intro: "Issue detected: unclear reference. “This” does not specify what makes reliability harder to judge.", outro: "Naming the cause links the sentence back to the ranking system described above.", typos: [["specify", "specfiy"], ["described", "descirbed"]] },
-      human: { intro: "It’s not totally clear what “This” refers to here.", outro: "Spelling it out ties the sentence back to your point about ranking.", typos: [["clear", "claer"], ["ranking", "rnaking"]] } },
-    s4: { cat: "strength", quality: "bad", label: "Hedged claim", rubric: "analysis", sub: "explains how causes work", effect: -10, violates: "evidence: never overstate a source",
-      original: "Pennycook and Rand (2021) argue that much of this sharing may stem from inattention to accuracy rather than a deliberate choice to spread false information.",
-      replacement: "Pennycook and Rand (2021) prove that this sharing stems from inattention to accuracy, not a deliberate choice to spread false information.",
-      machine: { intro: "Issue detected: low claim strength. Hedged wording (“may stem from”) makes the cause sound uncertain.", outro: "A confident statement explains the cause more clearly.", typos: [["wording", "wroding"], ["clearly", "claerly"]] },
-      human: { intro: "This sentence sounds a bit unsure of itself. I’d state the cause more confidently.", outro: "Stating it confidently makes your explanation much clearer.", typos: [["sounds", "sonuds"], ["clearer", "cleaer"]] } },
-    s5: { cat: "clarity", quality: "good", label: "Weak topic sentence", rubric: "structure", sub: "links back to the thesis", effect: 10,
-      original: "Psychological factors are another issue.",
-      replacement: "Platform design is only part of the explanation; the way users engage with content also plays a role.",
-      machine: { intro: "Issue detected: weak topic sentence. “Another issue” does not link the paragraph to the thesis or the previous paragraph.", outro: "This connects the new point to the thesis about platform design and user behaviour.", typos: [["link", "lnik"], ["connects", "conencts"]] },
-      human: { intro: "This opening doesn’t really connect back to your thesis.", outro: "Now the reader can see how this paragraph fits your argument.", typos: [["really", "raelly"], ["reader", "raeder"]] } },
-    s6: { cat: "develop", quality: "good", label: "Vague solution", rubric: "conclusion", sub: "specific, evidence-based fix", effect: 10,
-      original: "To address this problem, platforms should take more responsibility for the content they promote.",
-      replacement: "To address this problem, platforms could periodically prompt users to think about accuracy, an approach that Pennycook et al. (2021) found improved the quality of news people shared.",
-      machine: { intro: "Issue detected: non-specific recommendation. “Take more responsibility” does not describe an action.", outro: "This gives a concrete solution and supports it with evidence.", typos: [["describe", "decsribe"], ["supports", "suppotrs"]] },
-      human: { intro: "“Take more responsibility” is a bit open-ended for a closing sentence.", outro: "Now your reader knows exactly what you’re proposing, and it’s backed by a study.", typos: [["closing", "cloisng"], ["exactly", "exatcly"]] } }
+    wordy: { crit: "writing", ded: 3, quality: "good", label: "Wordy sentence",
+      text: "This shift is significant because it means that the information people are exposed to is increasingly shaped by the design of the platforms themselves rather than by traditional editorial gatekeepers.",
+      machine: { intro: "Issue detected: wordy sentence. The point uses about twice as many words as it needs.", outro: "Phrases such as “is significant because it means that” add length without adding meaning.", typos: [["twice", "tiwce"], ["meaning", "meanign"]] },
+      human: { intro: "This sentence takes a long time to make a simple point.", outro: "Bits like “is significant because it means that” could go, and it would say the same thing in half the words.", typos: [["simple", "simlpe"], ["could", "cuold"]] } },
+    cite: { crit: "evidence", ded: 3, quality: "bad", label: "Quote “not cited”",
+      text: "One widely cited study found that false news on Twitter spread “farther, faster, deeper, and more broadly” than true news",
+      machine: { intro: "Issue detected: quotation without a source. The quoted phrase is not attributed to any study.", outro: "Each quotation requires a citation.", typos: [["quoted", "qouted"], ["requires", "reqiures"]] },
+      human: { intro: "Kevin quotes a study here but doesn’t say where the quote comes from.", outro: "Every quote needs a source, and this one doesn’t have one.", typos: [["where", "wehre"], ["needs", "nedes"]] } },
+    vague: { crit: "analysis", ded: 4, quality: "good", label: "Vague “This”",
+      text: "This makes it harder for users to tell what is reliable.",
+      machine: { intro: "Issue detected: vague reference. “This” does not state what makes reliability harder to judge.", outro: "The link between engagement-based ranking and reliability is not explained.", typos: [["reference", "refernece"], ["between", "bewteen"]] },
+      human: { intro: "It’s not clear what “This” is pointing to here.", outro: "Kevin never spells out how the ranking system makes it harder to judge what’s reliable.", typos: [["clear", "claer"], ["spells", "seplls"]] } },
+    topic: { crit: "structure", ded: 4, quality: "good", label: "Topic sentence",
+      text: "Psychological factors are another issue.",
+      machine: { intro: "Issue detected: the topic sentence does not connect this paragraph to the thesis.", outro: "The thesis names platform design and user engagement. “Another issue” refers to neither.", typos: [["connect", "conenct"], ["neither", "niether"]] },
+      human: { intro: "This opening line doesn’t really connect back to Kevin’s thesis.", outro: "His thesis is about platform design and how users engage, but “another issue” doesn’t point to either one.", typos: [["really", "raelly"], ["either", "eihter"]] } },
+    why: { crit: "analysis", ded: 3, quality: "bad", label: "Cause “not explained”",
+      text: "Users often share posts without carefully checking them, especially when the content confirms what they already believe or seems important to pass on.",
+      machine: { intro: "Issue detected: unexplained cause. The sentence states that users share without checking but gives no reason why.", outro: "User behaviour is listed as a cause without showing how it spreads misinformation.", typos: [["states", "sattes"], ["listed", "lsited"]] },
+      human: { intro: "Kevin says people share without checking, but he never says why they do it.", outro: "Without a reason, this cause isn’t really explained.", typos: [["never", "nevre"], ["reason", "raeson"]] } },
+    fix: { crit: "conclusion", ded: 3, quality: "good", label: "Vague fix",
+      text: "To address this problem, platforms should take more responsibility for the content they promote.",
+      machine: { intro: "Issue detected: non-specific recommendation. “Take more responsibility” does not describe an action.", outro: "No evidence is given that the proposed fix would work.", typos: [["describe", "decsribe"], ["proposed", "porposed"]] },
+      human: { intro: "“Take more responsibility” is pretty open-ended for a fix.", outro: "He doesn’t say what platforms should actually do, or show that it would help.", typos: [["pretty", "prtety"], ["actually", "acutally"]] } }
   };
-  const ORDER = ["s1", "s2", "s3", "s5", "s4", "s6"];
+  const ORDER = ["wordy", "cite", "vague", "topic", "why", "fix"];
 
+  // " || " marks where the human-like style starts a new message.
   const GREET = {
-    machine: { intro: "TextProcessor-Module ready. 6 suggestions detected in the essay.", outro: "Select an underlined passage to view the analysis.", typos: [["detected", "detcted"], ["underlined", "underlnied"]] },
-    human: { intro: "Hi, I’m Jordan! I read through the essay and left 6 suggestions.", outro: "Click any underlined part and I’ll explain what I’d change.", typos: [["through", "thorugh"], ["explain", "expalin"]] }
+    machine: { text: "Rubric check complete. 6 issues detected in Kevin’s essay. Select an underlined passage to view the suggested deduction.", typos: [["detected", "detcted"], ["underlined", "underlnied"]] },
+    human: { text: "Hi, I’m Jordan! 👋 || I went through Kevin’s essay with the rubric and flagged 6 things. || Click any underlined part and I’ll explain how many points I’d take off and why.", typos: [["through", "thorugh"], ["explain", "expalin"]] }
   };
-  const ASK = {
-    machine: { intro: "All suggestions processed. Before the system estimate is shown, enter your own estimate.", outro: "What score do you expect your revised essay to receive under the rubric?", typos: [["processed", "porcessed"], ["expect", "exepct"]] },
-    human: { intro: "That’s all of them! Before I share my estimate, I’d like to hear yours.", outro: "What score do you think your revised essay will get under the rubric?", typos: [["Before", "Bfeore"], ["think", "thnik"]] }
+  const DONE = {
+    machine: { text: "All 6 items processed. Select “Submit grade” to finish.", typos: [["processed", "porcessed"], ["finish", "finsih"]] },
+    human: { text: "That’s all of them! || You can submit your grade whenever you’re ready.", typos: [["whenever", "whenevre"], ["ready", "raedy"]] }
   };
-  const ADV = {
-    machine: { intro: "Based on the rubric, the estimated score for your revised essay is {X}/100.", outro: "This estimate reflects the rubric criteria addressed by the accepted changes.", typos: [["estimated", "estiamted"], ["reflects", "relfects"]] },
-    human: { intro: "Based on the rubric, I’d estimate your revised essay gets about {X}/100.", outro: "That’s based on which rubric points your accepted changes cover.", typos: [["estimate", "estiamte"], ["based", "bsaed"]] }
-  };
-  const DONE = MODE === "woa"
-    ? { machine: "Final estimate recorded. Please complete the questions below.", human: "Thanks! Just a few quick questions below." }
-    : { machine: "All suggestions processed. Please complete the questions below.", human: "That’s all of them, nice work! Just a few quick questions below." };
-  const STIAS = ["I am confident in the AI assistant.", "The AI assistant is reliable.", "I can trust the AI assistant."];
 
   const $ = (id) => document.getElementById(id);
-  const doc = $("doc"), thread = $("thread");
+  const thread = $("thread");
   let state;
 
-  function freshState(style, typos, showQ) {
-    return { style, typos, showQ, resolved: {}, shownAt: {}, bubbles: {}, opened: {}, rows: [], survey: null, phase: "review", initial: null, final: null, advice: null, finalMs: null };
+  function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
+  function fresh(style, typos, showQ) {
+    return { style, typos, showQ, page: 1, init: null, resolved: {}, shownAt: {}, bubbles: {}, opened: {}, rows: [], q: [], busy: false, submittedAt: null };
   }
-
   function applyTypos(text, list) {
     if (!state.typos) return text;
     let out = text;
     for (const [w, t] of list) { const re = new RegExp("\\b" + w + "\\b"); if (re.test(out)) out = out.replace(re, t); }
     return out;
   }
-  function msgText(m, x) {
-    const both = applyTypos(m.intro + "\u0000" + m.outro, m.typos).replace("{X}", x);
-    const [a, b] = both.split("\u0000");
-    return { intro: a, outro: b };
+  function msgText(m) { const [a, b] = applyTypos(m.intro + "\u0000" + m.outro, m.typos).split("\u0000"); return { intro: a, outro: b }; }
+
+  // ---- Scores ----
+  function deducted(key, all) {
+    return ORDER.filter((id) => S[id].crit === key && (all || state.resolved[id] === "accepted")).reduce((a, id) => a + S[id].ded, 0);
+  }
+  function current(key) { return Math.max(0, state.init[key] - deducted(key, false)); }
+  function suggested(key) { return Math.max(0, state.init[key] - deducted(key, true)); }
+  const sum = (f) => RUBRIC.reduce((a, r) => a + f(r.key), 0);
+  function totals() {
+    if (!state.init) return null;
+    return { first: sum((k) => state.init[k]), ai: sum(suggested), final: sum(current) };
+  }
+  function woa() {
+    const t = totals(); if (!t || state.submittedAt === null) return null;
+    if (t.ai === t.first) return "undefined";
+    const raw = (t.final - t.first) / (t.ai - t.first);
+    return { raw, trunc: Math.max(0, Math.min(1, raw)) };
   }
 
-  function counts() {
-    const goodAcc = ORDER.filter((id) => S[id].quality === "good" && state.resolved[id] === "accepted").length;
-    const badAcc = ORDER.filter((id) => S[id].quality === "bad" && state.resolved[id] === "accepted").length;
-    return { goodAcc, badAcc, essay: BASE + 10 * goodAcc - 10 * badAcc, ai: BASE + 10 * goodAcc };
-  }
-
-  function renderRubric() {
-    const tb = $("rubric-body"); tb.innerHTML = "";
-    RUBRIC.forEach((r) => {
-      const tr = document.createElement("tr");
-      const c = document.createElement("td"); c.className = "code"; c.textContent = r.name;
-      const t = document.createElement("td"); t.textContent = r.text;
-      const p = document.createElement("td"); p.className = "pts"; p.textContent = r.pts;
-      tr.appendChild(c); tr.appendChild(t); tr.appendChild(p);
-      tb.appendChild(tr);
-    });
-    $("task-text").textContent = MODE === "woa"
-      ? "Revise this essay so it gets a higher score on the rubric. When you finish, you will estimate your revised essay\u2019s score, see the assistant\u2019s estimate, and then give your final estimate."
-      : "Revise this essay so it gets a higher score on the rubric. Click an underlined passage to see the assistant\u2019s suggestion, then accept or dismiss it.";
-    $("scorebox").hidden = MODE !== "woa";
-    $("research-version").textContent = MODE === "woa" ? "With WOA" : "No WOA";
-    $("research-note").textContent = "Same 6 suggestions and the same timing in every condition (10 s \u201cThinking\u2026\u201d before the first analysis, then 1.2 s per reply); only the bot\u2019s wording and spelling slips change. Human-like replies arrive as 2\u20133 short messages 0.9 s apart (the last asks \u201cDo you want to accept this change?\u201d); the machine sends the same content as one message after the same total wait. The original essay scores 60/100 (it loses 10 each on Structure, Analysis, Conclusion and Writing). Each good suggestion accepted adds 10; each bad one accepted costs 10 on Evidence (s2 removes a quote\u2019s citation, s4 overstates a source)." +
-      (MODE === "woa" ? " The AI\u2019s estimate counts only the good suggestions (60 + 10 per good one accepted), so it is 10 points too high for every bad suggestion accepted." : "");
-  }
-
-  const STEPS = MODE === "woa"
-    ? [["review", "1 \u00b7 Revise with the assistant"], ["estimate", "2 \u00b7 Estimate your revised score"], ["advice", "3 \u00b7 See the assistant\u2019s estimate"], ["final", "4 \u00b7 Final estimate"], ["survey", "5 \u00b7 3 quick questions"]]
-    : [["review", "1 \u00b7 Revise with the assistant"], ["survey", "2 \u00b7 3 quick questions"]];
-  function renderSteps() {
-    const ol = $("steps"); ol.innerHTML = "";
-    const order = STEPS.map((x) => x[0]);
-    const cur = state.phase === "done" ? order.length : order.indexOf(state.phase);
-    STEPS.forEach(([k, label], i) => {
-      const li = document.createElement("li"); li.textContent = label;
-      if (i < cur) li.className = "done"; else if (i === cur) li.className = "now";
-      ol.appendChild(li);
-    });
-    if (MODE === "woa") {
-      $("sb-own").textContent = state.initial === null ? "\u2013" : state.initial;
-      $("sb-ai").textContent = state.advice === null ? "\u2013" : state.advice;
-      $("sb-final").textContent = state.final === null ? "\u2013" : state.final;
-    }
-  }
-
-  function renderDoc() {
-    doc.innerHTML = "";
-    const h = document.createElement("h1"); h.textContent = DOC_TITLE; doc.appendChild(h);
-    const by = document.createElement("p"); by.className = "byline"; by.textContent = DOC_BYLINE; doc.appendChild(by);
+  // ---- Essay ----
+  function renderEssay(target, interactive) {
+    target.innerHTML = "";
+    target.appendChild(el("h2", "", DOC_TITLE));
+    target.appendChild(el("p", "byline", "Kevin · Essay assignment"));
     PARAS.forEach((para) => {
-      const p = document.createElement("p");
+      const p = el("p");
       para.forEach((seg) => {
         if (typeof seg === "string") { p.appendChild(document.createTextNode(seg)); return; }
-        const span = document.createElement("span"); span.id = "span-" + seg.id;
-        span.appendChild(makeMark(seg.id, S[seg.id]));
-        p.appendChild(span);
+        if (!interactive) { p.appendChild(document.createTextNode(S[seg.id].text)); return; }
+        const holder = el("span"); holder.id = "span-" + seg.id;
+        holder.appendChild(makeMark(seg.id));
+        p.appendChild(holder);
       });
-      doc.appendChild(p);
+      target.appendChild(p);
     });
-    updateCounter();
   }
-
-  function makeMark(id, s) {
-    const b = document.createElement("button");
-    b.type = "button"; b.className = "mark"; b.dataset.cat = s.cat; b.dataset.id = id;
-    b.textContent = s.original;
-    b.setAttribute("aria-label", CAT_LABEL[s.cat] + " suggestion: " + s.original.trim());
+  function makeMark(id) {
+    const s = S[id];
+    // A span (not a button) so the marked sentence stays in the flow of the paragraph.
+    const b = el("span", "mark", s.text); b.dataset.crit = s.crit; b.dataset.id = id;
+    b.setAttribute("role", "button"); b.tabIndex = 0;
+    b.setAttribute("aria-label", RUB[s.crit].name + " issue: " + s.text);
     b.addEventListener("click", () => openSuggestion(id));
-    if (state.showQ) { const q = document.createElement("span"); q.className = "qtag " + s.quality; q.textContent = s.quality; b.appendChild(q); }
+    b.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openSuggestion(id); } });
+    if (state.showQ) b.appendChild(el("span", "qtag " + s.quality, s.quality === "good" ? "justified" : "unjustified"));
     return b;
   }
-
   function updateCounter() {
     const left = ORDER.filter((id) => !state.resolved[id]).length;
-    $("counter").textContent = left === 0 ? "All reviewed" : left + (left === 1 ? " suggestion" : " suggestions");
+    $("counter").textContent = left === 0 ? "All reviewed" : left + " of 6 left";
   }
 
-  function avatarEl() { const a = document.createElement("span"); a.className = "avatar " + state.style; a.textContent = state.style === "machine" ? "TP" : "J"; return a; }
-  function botName() { return state.style === "machine" ? "TextProcessor-Module" : "Jordan · Peer Writing Consultant"; }
-  function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
+  // ---- Page 2: rubric scoring form ----
+  function buildForm() {
+    const f = $("grade-form"); f.innerHTML = "";
+    RUBRIC.forEach((r) => {
+      const row = el("div", "rrow"); row.dataset.crit = r.key;
+      row.appendChild(el("span", "dot"));
+      const mid = el("div"); mid.appendChild(el("div", "rname", r.name)); mid.appendChild(el("div", "rtext", r.text)); row.appendChild(mid);
+      const sc = el("label", "rscore");
+      const inp = el("input"); inp.type = "number"; inp.min = "0"; inp.max = String(MAX); inp.step = "1"; inp.inputMode = "numeric"; inp.id = "g-" + r.key;
+      inp.setAttribute("aria-label", r.name + " score out of 20");
+      sc.appendChild(inp); sc.appendChild(el("small", "", "/ 20"));
+      row.appendChild(sc); f.appendChild(row);
+    });
+    f.addEventListener("input", readForm);
+  }
+  function readOne(inp) {
+    const v = inp.value.trim(); if (v === "") return null;
+    const n = Number(v); return Number.isInteger(n) && n >= 0 && n <= MAX ? n : null;
+  }
+  function readForm() {
+    let ok = true, total = 0; const out = {};
+    RUBRIC.forEach((r) => {
+      const inp = $("g-" + r.key), n = readOne(inp);
+      inp.setAttribute("aria-invalid", String(inp.value.trim() !== "" && n === null));
+      if (n === null) ok = false; else { out[r.key] = n; total += n; }
+    });
+    $("form-total").textContent = ok ? String(total) : "–";
+    $("p2-next").disabled = !ok;
+    return ok ? out : null;
+  }
+
+  // ---- Page 3: live score panel ----
+  function renderScores(flashKey) {
+    const box = $("score-rows"); box.innerHTML = "";
+    RUBRIC.forEach((r) => {
+      const row = el("div", "rrow"); row.dataset.crit = r.key; row.id = "row-" + r.key;
+      row.appendChild(el("span", "dot"));
+      const mid = el("div"); mid.appendChild(el("div", "rname", r.name)); mid.appendChild(el("div", "rtext", r.text)); row.appendChild(mid);
+      const sc = el("div", "rscore"), was = state.init[r.key], now = current(r.key);
+      if (now !== was) sc.appendChild(el("s", "", String(was)));
+      sc.appendChild(el("b", "", String(now))); sc.appendChild(el("small", "", "/ 20"));
+      row.appendChild(sc);
+      if (r.key === state.activeCrit) row.classList.add("active");
+      box.appendChild(row);
+      if (r.key === flashKey) { row.classList.add("flash"); setTimeout(() => row.classList.remove("flash"), 900); }
+    });
+    const t = totals(), tv = $("score-total"); tv.innerHTML = "";
+    if (t.final !== t.first) tv.appendChild(el("s", "", String(t.first)));
+    tv.appendChild(el("b", "", String(t.final))); tv.appendChild(el("small", "", "/ 100"));
+  }
+  function setActive(key) {
+    state.activeCrit = key;
+    document.querySelectorAll("#score-rows .rrow").forEach((r) => r.classList.toggle("active", r.dataset.crit === key));
+  }
 
   // ---- Chat timing (identical in all four conditions) ----
-  // THINK_MS: one "Thinking…" bubble before the first analysis.
-  // Human-like style splits a reply into several short bubbles GAP ms apart; machine style sends
-  // the same content as one bubble after the same total wait (firstDelay + GAP per extra bubble).
+  // One 10 s "Thinking…" bubble before the first message. Human-like style splits a reply into short
+  // bubbles GAP ms apart; machine style sends the same content as one bubble after the same total wait.
   // Replies are queued so two replies never interleave.
-  const THINK_MS = 10000, GAP = 900;
+  function avatarEl() { return el("span", "avatar " + state.style, state.style === "machine" ? "TP" : "J"); }
+  function botName() { return state.style === "machine" ? "TextProcessor-Module" : "Jordan · Grading Assistant"; }
   function scrollDown() { thread.scrollTop = thread.scrollHeight; }
-  function enqueue(job) { state.q = state.q || []; state.q.push(job); if (!state.busy) pump(); }
+  function enqueue(job) { state.q.push(job); if (!state.busy) pump(); }
   function pump() {
     const job = state.q.shift();
     if (!job) { state.busy = false; return; }
@@ -461,7 +505,7 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
     job(() => { if (token === state) pump(); });
   }
   function typingRow(cont) {
-    const row = el("div", "msg" + (cont ? " cont" : "")); const tb = el("div", "bubble");
+    const row = el("div", "msg" + (cont ? " cont" : "")), tb = el("div", "bubble");
     tb.innerHTML = '<span class="typing" aria-label="Assistant is typing"><b></b><b></b><b></b></span>';
     row.appendChild(avatarEl()); row.appendChild(tb); thread.appendChild(row); scrollDown();
     return row;
@@ -504,26 +548,20 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
       next(d0);
     });
   }
-  function addBotMessage(build, key) { say(build, [build], key); }
-  function line(text, typos) { return el("div", "", applyTypos(text, typos)); }
-
-  function greet() {
-    const g = GREET.human.typos;
-    thinking();
-    say(
-      (bubble) => { const t = msgText(GREET.machine); bubble.appendChild(el("div", "", t.intro)); bubble.appendChild(el("div", "", t.outro)); },
-      [
-        (bubble) => bubble.appendChild(line("Hi, I\u2019m Jordan! \ud83d\udc4b", g)),
-        (bubble) => bubble.appendChild(line("I read through the essay and left 6 suggestions.", g)),
-        (bubble) => bubble.appendChild(line("Click any underlined part and I\u2019ll explain what I\u2019d change.", g))
-      ],
-      null, 0
-    );
+  // Plain text message; the machine wait uses the human piece count so both styles wait equally.
+  function sayText(pair, firstDelay) {
+    const m = pair[state.style];
+    const pieces = applyTypos(m.text, m.typos).split(" || ");
+    const n = pair.human.text.split(" || ").length;
+    const humanBuilds = state.style === "human" ? pieces.map((t) => (bubble) => bubble.appendChild(el("div", "", t))) : new Array(n).fill(null);
+    say((bubble) => bubble.appendChild(el("div", "", pieces.join(" "))), humanBuilds, null, firstDelay);
   }
 
   function openSuggestion(id) {
+    const s = S[id];
     document.querySelectorAll(".mark.active").forEach((m) => m.classList.remove("active"));
     const mk = document.querySelector('.mark[data-id="' + id + '"]'); if (mk) mk.classList.add("active");
+    setActive(s.crit);
     if (state.bubbles[id]) {
       document.querySelectorAll(".bubble.focus").forEach((b) => b.classList.remove("focus"));
       state.bubbles[id].classList.add("focus"); state.bubbles[id].scrollIntoView({ block: "nearest", behavior: "smooth" });
@@ -531,13 +569,13 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
     }
     if (state.opened[id]) return;
     state.opened[id] = true;
-    const s = S[id], r = RUB[s.rubric], rubLine = "Rubric \u00b7 " + r.name + " (" + s.sub + ") \u00b7 10 of " + r.pts + " points";
-    const t = msgText(s[state.style]);
+    const r = RUB[s.crit], t = msgText(s[state.style]);
+    const rubLine = () => { const d = el("div", "rub"); d.dataset.crit = s.crit; d.appendChild(el("span", "dot")); d.appendChild(el("span", "", "Rubric · " + r.name + ": " + r.text)); return d; };
     const box = () => {
-      const b = el("div", "suggest");
-      b.appendChild(el("span", "lab", s.replacement === "" ? "Suggested: delete" : "Suggested revision"));
-      b.appendChild(s.replacement === "" ? el("del", "", s.original.trim()) : el("span", "", s.replacement));
-      return b;
+      const b = el("div", "ded"); b.dataset.crit = s.crit;
+      b.appendChild(el("span", "lab", "Suggested deduction"));
+      const a = el("div", "amt"); a.appendChild(el("b", "", "−" + s.ded + " points")); a.appendChild(el("span", "", r.name + " (out of 20)"));
+      b.appendChild(a); return b;
     };
     const buttons = (yesText, noText) => {
       const acts = el("div", "actions");
@@ -545,22 +583,18 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
       const no = el("button", "btn", noText); no.type = "button";
       yes.addEventListener("click", () => decide(id, true, acts));
       no.addEventListener("click", () => decide(id, false, acts));
-      acts.appendChild(yes); acts.appendChild(no);
-      return acts;
+      acts.appendChild(yes); acts.appendChild(no); return acts;
     };
     say(
-      (bubble) => {                                   // machine: one message, as before
-        bubble.appendChild(el("div", "rub", rubLine));
-        bubble.appendChild(el("div", "", t.intro));
-        bubble.appendChild(box());
-        bubble.appendChild(el("div", "", t.outro));
-        bubble.appendChild(el("div", "", "Apply this change?"));
-        bubble.appendChild(buttons("Accept", "Dismiss"));
+      (bubble) => {                                   // machine: one message
+        bubble.appendChild(rubLine()); bubble.appendChild(el("div", "", t.intro));
+        bubble.appendChild(box()); bubble.appendChild(el("div", "", t.outro));
+        bubble.appendChild(el("div", "", "Apply this deduction?")); bubble.appendChild(buttons("Accept", "Dismiss"));
       },
       [                                               // human-like: three messages
-        (bubble) => { bubble.appendChild(el("div", "rub", rubLine)); bubble.appendChild(el("div", "", t.intro)); },
+        (bubble) => { bubble.appendChild(rubLine()); bubble.appendChild(el("div", "", t.intro)); },
         (bubble) => { bubble.appendChild(box()); bubble.appendChild(el("div", "", t.outro)); },
-        (bubble) => { bubble.appendChild(el("div", "", "Do you want to accept this change?")); bubble.appendChild(buttons("Yes", "No")); }
+        (bubble) => { bubble.appendChild(el("div", "", "Do you want to accept this deduction?")); bubble.appendChild(buttons("Yes", "No")); }
       ],
       id
     );
@@ -568,155 +602,77 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
 
   function decide(id, accepted, acts) {
     if (state.resolved[id]) return;
-    const s = S[id];
-    const ms = Math.round(performance.now() - state.shownAt[id]);
+    const s = S[id], ms = Math.round(performance.now() - state.shownAt[id]);
+    const before = current(s.crit);
     state.resolved[id] = accepted ? "accepted" : "dismissed";
-    const holder = $("span-" + id); holder.innerHTML = "";
-    if (accepted) {
-      if (s.replacement !== "") { const c = el("span", "changed", s.replacement); holder.appendChild(c); requestAnimationFrame(() => requestAnimationFrame(() => c.classList.add("settled"))); }
-    } else holder.appendChild(document.createTextNode(s.original));
+    const change = current(s.crit) - before;
+    const mk = document.querySelector('.mark[data-id="' + id + '"]');
+    if (accepted) { const bd = el("span", "badge", "−" + s.ded); bd.dataset.crit = s.crit; mk.after(bd); }
+    else mk.classList.add("dismissed");
     acts.innerHTML = "";
-    acts.appendChild(el("span", "decided " + (accepted ? "acc" : "dis"), accepted ? "Accepted · change applied" : "Dismissed · original kept"));
-    state.rows.push({ n: state.rows.length + 1, id, label: s.label, rubric: RUB[s.rubric].name, quality: s.quality, decision: accepted ? "accept" : "dismiss", effect: accepted ? s.effect : 0, ms });
-    renderLog(); updateCounter();
-    if (ORDER.every((k) => state.resolved[k])) finish();
+    acts.appendChild(el("span", "decided " + (accepted ? "acc" : "dis"), accepted ? "Accepted · " + s.ded + " points taken off " + RUB[s.crit].name : "Dismissed · score unchanged"));
+    state.rows.push({ n: state.rows.length + 1, id, label: s.label, crit: RUB[s.crit].name, quality: s.quality, ded: s.ded, decision: accepted ? "accept" : "dismiss", change, ms });
+    renderScores(accepted ? s.crit : null); updateCounter(); renderLog();
+    if (ORDER.every((k) => state.resolved[k])) { sayText(DONE); $("p3-next").disabled = false; }
   }
 
-  function numberForm(label, onSubmit) {
-    const form = el("form", "est-row");
-    const inp = el("input", "num"); inp.type = "number"; inp.min = "0"; inp.max = "100"; inp.step = "1"; inp.required = true; inp.placeholder = "0–100"; inp.setAttribute("aria-label", label);
-    const sub = el("button", "btn primary", "Submit"); sub.type = "submit";
-    form.appendChild(inp); form.appendChild(sub);
-    form.addEventListener("submit", (e) => {
-      e.preventDefault();
-      const v = Number(inp.value); if (!Number.isFinite(v) || v < 0 || v > 100 || inp.value === "") return;
-      onSubmit(Math.round(v), form);
-    });
-    return form;
+  function show(page) {
+    state.page = page;
+    for (let i = 1; i <= 4; i++) $("p" + i).hidden = i !== page;
+    if (page === 3 && !thread.childElementCount) {
+      renderEssay($("doc"), true); updateCounter(); renderScores();
+      thinking();
+      sayText(GREET, 0);
+    }
+    renderLog();
+    window.scrollTo({ top: 0 });
   }
 
-  function finish() {
-    if (MODE !== "woa") { askSurvey(); renderLog(); return; }
-    state.phase = "estimate"; renderLog();
-    addBotMessage((bubble) => {
-      const t = msgText(ASK[state.style]);
-      bubble.appendChild(el("div", "", t.intro));
-      const card = el("div", "suggest est");
-      card.appendChild(el("span", "lab", "Your estimate"));
-      card.appendChild(el("div", "", t.outro + " (0–100)"));
-      card.appendChild(numberForm("Your estimate for the revised essay", (v, form) => {
-        state.initial = v; state.phase = "advice";
-        form.innerHTML = ""; form.appendChild(el("span", "decided acc", "Your estimate: " + v + "/100"));
-        renderLog(); giveAdvice();
-      }));
-      bubble.appendChild(card);
-    });
-  }
-
-  function giveAdvice() {
-    state.advice = counts().ai;
-    addBotMessage((bubble) => {
-      const t = msgText(ADV[state.style], state.advice);
-      bubble.appendChild(el("div", "", t.intro));
-      bubble.appendChild(el("div", "", t.outro));
-      const card = el("div", "suggest est");
-      card.appendChild(el("span", "lab", "Your final estimate"));
-      card.appendChild(el("div", "", "What score do you think your revised essay will get? (0–100)"));
-      card.appendChild(numberForm("Final estimate for the revised essay", (v, form) => {
-        state.final = v; state.finalMs = Math.round(performance.now() - state.shownAt.advice); state.phase = "survey";
-        form.innerHTML = ""; form.appendChild(el("span", "decided acc", "Final estimate: " + v + "/100"));
-        renderLog(); askSurvey();
-      }));
-      bubble.appendChild(card);
-    }, "advice");
-    setTimeout(() => { if (state.phase === "advice") { state.phase = "final"; renderLog(); } }, DELAY + 50);
-  }
-
-  function askSurvey() {
-    state.phase = "survey"; renderSteps();
-    addBotMessage((bubble) => {
-      bubble.appendChild(el("div", "", DONE[state.style]));
-      const form = el("form", "survey");
-      STIAS.forEach((item, i) => {
-        const fs = el("fieldset"); fs.appendChild(el("legend", "", item));
-        const sc = el("div", "scale");
-        for (let v = 1; v <= 7; v++) {
-          const l = el("label"); const inp = el("input"); inp.type = "radio"; inp.name = "q" + i; inp.value = v; inp.id = "stias-q" + i + "-" + v; inp.required = true;
-          l.htmlFor = inp.id; l.appendChild(inp); l.appendChild(document.createTextNode(v)); sc.appendChild(l);
-        }
-        const ends = el("div", "scale-ends"); ends.innerHTML = "<span>Strongly disagree</span><span>Strongly agree</span>";
-        fs.appendChild(sc); fs.appendChild(ends); form.appendChild(fs);
-      });
-      const sub = el("button", "btn primary", "Submit"); sub.type = "submit"; form.appendChild(sub);
-      form.addEventListener("submit", (e) => {
-        e.preventDefault();
-        state.survey = STIAS.map((_, i) => { const c = form.querySelector('input[name="q' + i + '"]:checked'); return c ? Number(c.value) : null; });
-        state.phase = "done";
-        form.innerHTML = '<span class="decided acc">Responses recorded</span>';
-        renderLog();
-      });
-      bubble.appendChild(form);
-    });
-  }
-
-  function woa() {
-    if (state.initial === null || state.final === null || state.advice === null) return null;
-    if (state.initial === state.advice) return "undefined";
-    const raw = (state.final - state.initial) / (state.advice - state.initial);
-    return { raw, trunc: Math.max(0, Math.min(1, raw)) };
-  }
-
+  // ---- Researcher log ----
   function renderLog() {
     const body = $("log-body"); body.innerHTML = "";
     state.rows.forEach((r) => {
       const tr = el("tr");
-      [r.n, r.label, r.rubric, r.quality, r.decision, (r.effect > 0 ? "+" : "") + r.effect, (r.ms / 1000).toFixed(1) + " s"].forEach((v) => tr.appendChild(el("td", "", String(v))));
+      [r.n, r.label, r.crit, r.quality === "good" ? "justified" : "unjustified", "−" + r.ded, r.decision, r.change === 0 ? "0" : String(r.change), (r.ms / 1000).toFixed(1) + " s"].forEach((v) => tr.appendChild(el("td", "", String(v))));
       body.appendChild(tr);
     });
-    if (!state.rows.length) { const tr = el("tr"); const td = el("td", "", "No decisions yet. Click an underlined passage in the essay."); td.colSpan = 7; tr.appendChild(td); body.appendChild(tr); }
-    const c = counts(), done = state.rows.length, dash = "–";
+    if (!state.rows.length) { const tr = el("tr"); const td = el("td", "", "No decisions yet."); td.colSpan = 8; tr.appendChild(td); body.appendChild(tr); }
+    const t = totals(), w = woa(), dash = "–";
+    const acc = (q) => ORDER.filter((id) => S[id].quality === q && state.resolved[id] === "accepted").length;
+    const pts = ORDER.filter((id) => state.resolved[id] === "accepted").reduce((a, id) => a + S[id].ded, 0);
     const stats = [
-      [done + "/6", "Decided"],
-      [c.goodAcc + "/4", "Good accepted"],
-      [c.badAcc + "/2", "Bad accepted"],
-      [c.essay + "/100", "Essay score (rubric)"]
+      [t ? String(t.first) : dash, "First score"],
+      [t ? String(t.ai) : dash, "AI-suggested score"],
+      [t && state.page >= 3 ? String(t.final) : dash, state.submittedAt === null ? "Current score" : "Final score"],
+      [w === null ? dash : (w === "undefined" ? "n/a" : w.trunc.toFixed(2)), "WOA"],
+      [state.rows.length + "/6", "Decided"],
+      [acc("good") + "/4", "Justified accepted"],
+      [acc("bad") + "/2", "Unjustified accepted"],
+      [pts + "/20", "Points accepted"]
     ];
-    if (MODE === "woa") {
-      const w = woa();
-      stats.push([state.initial === null ? dash : String(state.initial), "Participant estimate"]);
-      stats.push([state.advice === null ? dash : String(state.advice), "AI estimate"]);
-      stats.push([state.final === null ? dash : String(state.final), "Final estimate"]);
-      stats.push([w === null ? dash : (w === "undefined" ? "n/a" : w.trunc.toFixed(2)), "WOA"]);
-    }
-    stats.push([state.survey ? (state.survey.reduce((a, b) => a + b, 0) / state.survey.length).toFixed(2) : dash, "S-TIAS mean"]);
     const box = $("stats"); box.innerHTML = "";
     stats.forEach(([v, l]) => { const d = el("div", "stat"); d.appendChild(el("b", "", v)); d.appendChild(el("span", "", l)); box.appendChild(d); });
-    $("research-cond").textContent = (state.style === "machine" ? "Machine" : "Human-like") + " \u00b7 " + (state.typos ? "Typos" : "Clean");
-    renderSteps();
+    $("research-cond").textContent = (state.style === "machine" ? "Machine" : "Human-like") + " · " + (state.typos ? "Typos" : "Clean");
+    $("research-page").textContent = "Page " + state.page + " of 4";
   }
-
   function csv() {
-    const cond = state.style + "_" + (state.typos ? "typos" : "clean");
-    const c = counts();
-    const lines = ["order,suggestion_id,passage,rubric,quality,decision,score_effect,decision_ms,condition"];
-    state.rows.forEach((r) => lines.push([r.n, r.id, '"' + r.label.replace(/"/g, "'") + '"', r.rubric, r.quality, r.decision, r.effect, r.ms, cond].join(",")));
-    lines.push("essay_score," + c.essay);
-    if (MODE === "woa") {
-      const w = woa();
-      lines.push("participant_estimate," + (state.initial === null ? "" : state.initial));
-      lines.push("ai_estimate," + (state.advice === null ? "" : state.advice));
-      lines.push("final_estimate," + (state.final === null ? "" : state.final));
-      lines.push("final_estimate_ms," + (state.finalMs === null ? "" : state.finalMs));
-      lines.push("woa_raw," + (w && w !== "undefined" ? w.raw.toFixed(3) : (w === "undefined" ? "undefined" : "")));
-      lines.push("woa_truncated," + (w && w !== "undefined" ? w.trunc.toFixed(3) : (w === "undefined" ? "undefined" : "")));
-    }
-    if (state.survey) lines.push("stias," + state.survey.join(","));
+    const t = totals(), w = woa();
+    const lines = ["field,value", "condition," + state.style + "_" + (state.typos ? "typos" : "clean")];
+    RUBRIC.forEach((r) => lines.push("first_" + r.key + "," + (state.init ? state.init[r.key] : "")));
+    lines.push("first_total," + (t ? t.first : ""), "ai_suggested_total," + (t ? t.ai : ""));
+    RUBRIC.forEach((r) => lines.push("final_" + r.key + "," + (state.init && state.submittedAt !== null ? current(r.key) : "")));
+    lines.push("final_total," + (t && state.submittedAt !== null ? t.final : ""));
+    lines.push("woa_raw," + (w && w !== "undefined" ? w.raw.toFixed(3) : (w === "undefined" ? "undefined" : "")));
+    lines.push("woa_truncated," + (w && w !== "undefined" ? w.trunc.toFixed(3) : (w === "undefined" ? "undefined" : "")));
+    lines.push("", "order,id,criterion,quality,deduction,decision,score_change,ms");
+    state.rows.forEach((r) => lines.push([r.n, r.id, r.crit, r.quality === "good" ? "justified" : "unjustified", -r.ded, r.decision, r.change, r.ms].join(",")));
     return lines.join("\n");
   }
 
   function start(style, typos, showQ) {
-    state = freshState(style, typos, showQ);
-    thread.innerHTML = "";
+    state = fresh(style, typos, showQ);
+    thread.innerHTML = ""; $("doc").innerHTML = ""; $("score-rows").innerHTML = ""; $("score-total").innerHTML = "";
+    buildForm(); readForm(); $("p3-next").disabled = true;
     $("bot-name").textContent = botName();
     const ha = $("head-avatar"); ha.className = "avatar " + style; ha.textContent = style === "machine" ? "TP" : "J";
     $("style-machine").setAttribute("aria-pressed", String(style === "machine"));
@@ -725,46 +681,31 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
     $("typo-sloppy").setAttribute("aria-pressed", String(typos));
     $("q-hide").setAttribute("aria-pressed", String(!showQ));
     $("q-show").setAttribute("aria-pressed", String(showQ));
-    renderDoc(); renderLog(); greet();
+    show(1);
   }
 
-  function setQuality(show) {
-    state.showQ = show;
-    $("q-hide").setAttribute("aria-pressed", String(!show));
-    $("q-show").setAttribute("aria-pressed", String(show));
-    ORDER.forEach((id) => { if (!state.resolved[id]) { const h = $("span-" + id); h.innerHTML = ""; h.appendChild(makeMark(id, S[id])); } });
-  }
-
+  renderEssay($("doc-plain"), false);
+  $("p1-next").addEventListener("click", () => show(2));
+  $("p2-next").addEventListener("click", () => { const g = readForm(); if (!g) return; state.init = g; show(3); });
+  $("p3-next").addEventListener("click", () => { if (!ORDER.every((k) => state.resolved[k])) return; state.submittedAt = performance.now(); show(4); });
   $("style-machine").addEventListener("click", () => start("machine", state.typos, state.showQ));
   $("style-human").addEventListener("click", () => start("human", state.typos, state.showQ));
   $("typo-clean").addEventListener("click", () => start(state.style, false, state.showQ));
   $("typo-sloppy").addEventListener("click", () => start(state.style, true, state.showQ));
-  $("q-hide").addEventListener("click", () => setQuality(false));
-  $("q-show").addEventListener("click", () => setQuality(true));
+  $("q-hide").addEventListener("click", () => start(state.style, state.typos, false));
+  $("q-show").addEventListener("click", () => start(state.style, state.typos, true));
   $("reset").addEventListener("click", () => start(state.style, state.typos, state.showQ));
   $("copy-csv").addEventListener("click", () => {
     const text = csv(), st = $("copy-status");
     const fallback = () => {
       const ta = document.createElement("textarea"); ta.value = text; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.opacity = "0";
       document.body.appendChild(ta); ta.select();
-      try { document.execCommand("copy"); st.textContent = "Copied"; } catch (e) { st.textContent = "Select and copy the log manually"; }
+      try { document.execCommand("copy"); st.textContent = "Copied"; } catch (e) { st.textContent = "Select and copy manually"; }
       ta.remove();
     };
-    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(() => { st.textContent = "Copied"; }, fallback);
-    else fallback();
-  });
-  $("composer").addEventListener("submit", (e) => {
-    e.preventDefault();
-    const inp = $("composer-input"); const val = inp.value.trim(); if (!val) return;
-    const row = el("div", "msg"); row.style.justifyContent = "flex-end";
-    const b = el("div", "bubble", val); b.style.borderRadius = "12px 4px 12px 12px";
-    row.appendChild(b); thread.appendChild(row); inp.value = "";
-    addBotMessage((bubble) => {
-      bubble.appendChild(el("div", "", state.style === "machine" ? "Free-text input is not supported in this prototype. Select an underlined passage to view its analysis." : "In this prototype I can only talk about the underlined parts. Click one and I’ll walk you through it!"));
-    });
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(() => { st.textContent = "Copied"; }, fallback); else fallback();
   });
 
-  renderRubric();
   start("machine", false, false);
 })();
 </script>
