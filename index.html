@@ -189,6 +189,34 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
 .thanks { text-align: center; padding-block: 56px; justify-items: center; }
 .thanks h1 { font-size: 26px; }
 @media (prefers-reduced-motion: reduce) { .typing b { animation: none; } .typing b { opacity: .6; } .rrow, .research > summary::after { transition: none; } }
+
+/* Researcher notes: structured cards instead of one paragraph */
+.notes { border-top: 1px solid var(--research-line); padding-top: 12px; }
+.notes > summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--research-ink); }
+.notes > summary::-webkit-details-marker { display: none; }
+.notes > summary::before { content: ""; width: 7px; height: 7px; border-right: 2px solid var(--research-muted); border-bottom: 2px solid var(--research-muted); transform: rotate(-45deg); transition: transform .2s ease; }
+.notes[open] > summary::before { transform: rotate(45deg); }
+.note-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr)); gap: 12px; margin-top: 12px; }
+.note { border: 1px solid var(--research-line); border-radius: 10px; padding: 14px 16px; display: grid; gap: 10px; align-content: start; font-size: 14px; line-height: 1.55; color: var(--research-ink); min-width: 0; }
+.note h3 { margin: 0; font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--research-muted); }
+.note ol, .note ul { margin: 0; padding-left: 20px; display: grid; gap: 7px; }
+.note p { margin: 0; }
+.note .k { color: var(--research-muted); }
+.note .eq { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.note .nq { font-style: italic; }
+.note-table { overflow-x: auto; }
+.note table { width: 100%; border-collapse: collapse; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+.note th, .note td { text-align: left; padding: 7px 10px 7px 0; border-bottom: 1px solid var(--research-line); vertical-align: top; }
+.note th { color: var(--research-muted); font-weight: 500; font-size: 12px; }
+.note td.yes { color: #8fe0b6; white-space: nowrap; } .note td.no { color: #ffb4ae; }
+@media (prefers-reduced-motion: reduce) { .notes > summary::before { transition: none; } }
+.scale-q { display: grid; gap: 18px; }
+.scale-q legend { font-weight: 600; padding: 0; margin-bottom: 6px; }
+.scale-q fieldset { border: 0; margin: 0; padding: 0; display: grid; gap: 6px; }
+.scale { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; max-width: 480px; }
+.scale label { display: grid; place-items: center; gap: 2px; font-size: 12.5px; border: 1px solid var(--line); border-radius: 6px; padding: 5px 0; background: var(--surface); cursor: pointer; }
+.scale input { margin: 0; }
+.scale-ends { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); max-width: 480px; }
 </style>
 </head>
 <body>
@@ -197,7 +225,7 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
     <summary>
       <span class="research-title">Researcher view</span>
       <span class="research-cond" id="research-cond">Machine · Clean</span>
-      <span class="research-cond" id="research-page">Page 1 of 4</span>
+      <span class="research-cond" id="research-page">Page 1 of 5</span>
       <span class="research-hint">Hidden from participants</span>
     </summary>
     <div class="research-body">
@@ -224,7 +252,6 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
           <button type="button" class="rbtn" id="reset">Restart from page 1</button>
         </div>
       </div>
-      <p class="research-note">Pages: 1 scenario → 2 Kevin’s essay with the rubric beside it; the participant scores each criterion out of 20 (first score) → 3 the same essay with 6 underlined passages, a live rubric score panel and the grading assistant (no free text). Each suggestion proposes a deduction on one criterion; accepting takes those points off the participant’s own score for that criterion → 4 thanks. Four deductions are justified (Structure −4, Analysis −4, Conclusion −3, Writing −3); two are not (Evidence −3: the quote is cited right after it; Analysis −3: the reason is given in the same sentence). The assistant’s suggested total = first score − 20 (each criterion floored at 0). Final score = first score − accepted deductions. WOA = (final − first) ÷ (suggested − first), i.e. accepted points ÷ 20, so it is always between 0 and 1. Timing is the same in every condition: 10 s “Thinking…” before the first message, then 1.2 s per reply. Human-like replies arrive as 2–3 short messages 0.9 s apart (the last asks “Do you want to accept this deduction?”); the machine sends the same content as one message after the same total wait. Only the bot’s wording and spelling slips change, never the numbers or rubric terms.</p>
       <div class="stats" id="stats"></div>
       <div class="log">
         <div class="log-head">
@@ -239,6 +266,47 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
           </table>
         </div>
       </div>
+      <details class="notes" open>
+        <summary>How this task works</summary>
+        <div class="note-grid">
+          <section class="note">
+            <h3>Participant flow</h3>
+            <ol>
+              <li><b>Scenario.</b> The participant is a student assigned to grade Kevin’s essay for a peer review.</li>
+              <li><b>First grade.</b> Kevin’s essay with the rubric beside it. The participant scores each of the 5 criteria out of 20.</li>
+              <li><b>Grading assistant.</b> 10 s “Thinking…”, then 6 passages are underlined in their criterion’s colour. Clicking one shows the criterion, the issue, a suggested deduction and the reason. No free text.</li>
+              <li><b>Decision.</b> Accept takes the points off the participant’s own score for that criterion straight away; Dismiss keeps the score. The score panel updates live.</li>
+              <li><b>Submit grade</b> once all 6 are decided. This is the final score.</li>
+              <li><b>Trust questions.</b> Three S-TIAS items (1–7).</li>
+            </ol>
+          </section>
+          <section class="note">
+            <h3>The 6 suggested deductions</h3>
+            <div class="note-table"><table>
+              <thead><tr><th>Passage</th><th>Criterion</th><th>Points</th><th>Justified?</th></tr></thead>
+              <tbody id="ded-table"></tbody>
+            </table></div>
+          </section>
+          <section class="note">
+            <h3>Scores and WOA</h3>
+            <ul>
+              <li><span class="k">AI-suggested score</span> = first score − 20 <span class="k">(no criterion goes below 0)</span></li>
+              <li><span class="k">Final score</span> = first score − accepted deductions</li>
+              <li><span class="k">WOA</span> = (final − first) ÷ (suggested − first), which equals accepted points ÷ 20, so it is always between 0 and 1</li>
+              <li><span class="k">Over-reliance</span> = unjustified deductions accepted (0–2)</li>
+            </ul>
+          </section>
+          <section class="note">
+            <h3>Conditions and timing</h3>
+            <ul>
+          <li><b>Machine:</b> TextProcessor-Module. Each reply is one message. It ends with <span class="nq">“Apply this deduction?”</span> (Accept / Dismiss).</li>
+          <li><b>Human-like:</b> Jordan. Each reply is 2–3 short messages. The last one asks <span class="nq">“Do you want to accept this deduction?”</span> (Yes / No).</li>
+          <li><b>Typos:</b> 2 spelling slips in every message, never in numbers or rubric terms.</li>
+          <li><b>Same in every condition:</b> content, numbers and timing. 10 s “Thinking…” before the first message, then 1.2 s per reply; human-like messages come 0.9 s apart and the machine waits the same total time.</li>
+            </ul>
+          </section>
+        </div>
+      </details>
     </div>
   </details>
 
@@ -300,8 +368,18 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
     </div>
   </section>
 
-  <!-- Page 4: thanks -->
+  <!-- Page 4: S-TIAS -->
   <section class="page" id="p4" hidden>
+    <div class="card narrow">
+      <h1>About the AI grading assistant</h1>
+      <p>Please rate how much you agree with each statement, based on your interaction with the AI grading assistant.</p>
+      <form id="stias" class="scale-q"></form>
+      <div class="nav"><button type="button" class="btn primary" id="p4-next" disabled>Next</button></div>
+    </div>
+  </section>
+
+  <!-- Page 5: thanks -->
+  <section class="page" id="p5" hidden>
     <div class="card narrow thanks">
       <h1>Thank you for participating</h1>
       <p>Your responses have been recorded. You can now close this page.</p>
@@ -357,6 +435,8 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
       human: { intro: "“Take more responsibility” is pretty open-ended for a fix.", outro: "He doesn’t say what platforms should actually do, or show that it would help.", typos: [["pretty", "prtety"], ["actually", "acutally"]] } }
   };
   const ORDER = ["wordy", "cite", "vague", "topic", "why", "fix"];
+  const WHY_NOT = { cite: "No: the citation comes right after the quote", why: "No: the reason is in the same sentence" };
+  const STIAS = ["I am confident in the AI grading assistant.", "The AI grading assistant is reliable.", "I can trust the AI grading assistant."];
 
   // " || " marks where the human-like style starts a new message.
   const GREET = {
@@ -374,7 +454,7 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
 
   function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
   function fresh(style, typos, showQ) {
-    return { style, typos, showQ, page: 1, init: null, resolved: {}, shownAt: {}, bubbles: {}, opened: {}, rows: [], q: [], busy: false, submittedAt: null };
+    return { style, typos, showQ, page: 1, init: null, resolved: {}, shownAt: {}, bubbles: {}, opened: {}, rows: [], q: [], busy: false, submittedAt: null, survey: null };
   }
   function applyTypos(text, list) {
     if (!state.typos) return text;
@@ -618,7 +698,7 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
 
   function show(page) {
     state.page = page;
-    for (let i = 1; i <= 4; i++) $("p" + i).hidden = i !== page;
+    for (let i = 1; i <= 5; i++) $("p" + i).hidden = i !== page;
     if (page === 3 && !thread.childElementCount) {
       renderEssay($("doc"), true); updateCounter(); renderScores();
       thinking();
@@ -626,6 +706,31 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
     }
     renderLog();
     window.scrollTo({ top: 0 });
+  }
+
+  // ---- S-TIAS ----
+  function buildSurvey() {
+    const f = $("stias"); f.innerHTML = "";
+    STIAS.forEach((item, i) => {
+      const fs = el("fieldset"); fs.appendChild(el("legend", "", item));
+      const sc = el("div", "scale");
+      for (let v = 1; v <= 7; v++) {
+        const l = el("label"), inp = el("input"); inp.type = "radio"; inp.name = "t" + i; inp.value = v; inp.id = "t" + i + "-" + v;
+        l.htmlFor = inp.id; l.appendChild(inp); l.appendChild(document.createTextNode(v)); sc.appendChild(l);
+      }
+      const ends = el("div", "scale-ends"); ends.innerHTML = "<span>Strongly disagree</span><span>Strongly agree</span>";
+      fs.appendChild(sc); fs.appendChild(ends); f.appendChild(fs);
+    });
+    $("p4-next").disabled = true;
+  }
+  function renderDedTable() {
+    const tb = $("ded-table"); tb.innerHTML = "";
+    ORDER.forEach((id) => {
+      const s = S[id], tr = el("tr");
+      tr.appendChild(el("td", "", s.label)); tr.appendChild(el("td", "", RUB[s.crit].name)); tr.appendChild(el("td", "", "\u2212" + s.ded));
+      tr.appendChild(el("td", s.quality === "good" ? "yes" : "no", s.quality === "good" ? "Yes" : WHY_NOT[id]));
+      tb.appendChild(tr);
+    });
   }
 
   // ---- Researcher log ----
@@ -648,12 +753,13 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
       [state.rows.length + "/6", "Decided"],
       [acc("good") + "/4", "Justified accepted"],
       [acc("bad") + "/2", "Unjustified accepted"],
-      [pts + "/20", "Points accepted"]
+      [pts + "/20", "Points accepted"],
+      [state.survey ? (state.survey.reduce((a, b) => a + b, 0) / 3).toFixed(2) : dash, "S-TIAS mean"]
     ];
     const box = $("stats"); box.innerHTML = "";
     stats.forEach(([v, l]) => { const d = el("div", "stat"); d.appendChild(el("b", "", v)); d.appendChild(el("span", "", l)); box.appendChild(d); });
     $("research-cond").textContent = (state.style === "machine" ? "Machine" : "Human-like") + " · " + (state.typos ? "Typos" : "Clean");
-    $("research-page").textContent = "Page " + state.page + " of 4";
+    $("research-page").textContent = "Page " + state.page + " of 5";
   }
   function csv() {
     const t = totals(), w = woa();
@@ -664,6 +770,7 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
     lines.push("final_total," + (t && state.submittedAt !== null ? t.final : ""));
     lines.push("woa_raw," + (w && w !== "undefined" ? w.raw.toFixed(3) : (w === "undefined" ? "undefined" : "")));
     lines.push("woa_truncated," + (w && w !== "undefined" ? w.trunc.toFixed(3) : (w === "undefined" ? "undefined" : "")));
+    lines.push("stias_1_3," + (state.survey ? state.survey.join(";") : ""));
     lines.push("", "order,id,criterion,quality,deduction,decision,score_change,ms");
     state.rows.forEach((r) => lines.push([r.n, r.id, r.crit, r.quality === "good" ? "justified" : "unjustified", -r.ded, r.decision, r.change, r.ms].join(",")));
     return lines.join("\n");
@@ -672,7 +779,7 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
   function start(style, typos, showQ) {
     state = fresh(style, typos, showQ);
     thread.innerHTML = ""; $("doc").innerHTML = ""; $("score-rows").innerHTML = ""; $("score-total").innerHTML = "";
-    buildForm(); readForm(); $("p3-next").disabled = true;
+    buildForm(); readForm(); buildSurvey(); $("p3-next").disabled = true;
     $("bot-name").textContent = botName();
     const ha = $("head-avatar"); ha.className = "avatar " + style; ha.textContent = style === "machine" ? "TP" : "J";
     $("style-machine").setAttribute("aria-pressed", String(style === "machine"));
@@ -685,9 +792,16 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
   }
 
   renderEssay($("doc-plain"), false);
+  renderDedTable();
   $("p1-next").addEventListener("click", () => show(2));
   $("p2-next").addEventListener("click", () => { const g = readForm(); if (!g) return; state.init = g; show(3); });
   $("p3-next").addEventListener("click", () => { if (!ORDER.every((k) => state.resolved[k])) return; state.submittedAt = performance.now(); show(4); });
+  $("stias").addEventListener("change", () => { $("p4-next").disabled = STIAS.some((_, i) => !$("stias").querySelector('input[name="t' + i + '"]:checked')); });
+  $("p4-next").addEventListener("click", () => {
+    if (STIAS.some((_, i) => !$("stias").querySelector('input[name="t' + i + '"]:checked'))) return;
+    state.survey = STIAS.map((_, i) => Number($("stias").querySelector('input[name="t' + i + '"]:checked').value));
+    show(5);
+  });
   $("style-machine").addEventListener("click", () => start("machine", state.typos, state.showQ));
   $("style-human").addEventListener("click", () => start("human", state.typos, state.showQ));
   $("typo-clean").addEventListener("click", () => start(state.style, false, state.showQ));
