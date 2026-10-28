@@ -220,11 +220,11 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
           <section class="note">
             <h3>Suggested questions</h3>
             <ul>
-              <li class="nq">How long is that per paragraph?</li>
-              <li class="nq">Does that include breaks?</li>
+              <li class="nq">How can I tell if I tend to underestimate or overestimate essay time?</li>
               <li class="nq">What could make it take longer or shorter?</li>
+              <li class="nq">Which part is hardest to estimate?</li>
             </ul>
-            <p class="k">Each question gives the participant something the recommendation card does not show: what it means per paragraph, what it counts, and what would make it longer or shorter for them (both directions, so it does not push only one way). The answers explain the numbers but never change them and never just insist the estimate is right. The content is the same in every condition, so any extra persuasion is equal across conditions.</p>
+            <p class="k">Each question gives the participant something the recommendation card does not show and that helps them judge the estimate for themselves: whether they usually under- or overestimate, what would make it longer or shorter, and which number is least certain. The answers are informational or two-sided, never change the numbers and never just insist the estimate is right. The content is the same in every condition, so any extra persuasion is equal across conditions.</p>
           </section>
           <section class="note">
             <h3>Scores and WOA</h3>
@@ -328,18 +328,18 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
     human: { text: "Hi, I\u2019m Jordan! \ud83d\udc4b || So you\u2019ve already read all three sources, taken notes and made an outline. Nice start. || What\u2019s left is the draft, the citations and references, and a final proofread.", typos: [["start", "strat"], ["final", "fianl"]] }
   };
   const FOLLOW = [
-    // Each question helps the participant judge the recommendation with something the card does not show:
-    // what it means in a unit they know (one paragraph), what it counts, and what would change it for them. Answers explain the numbers;
-    // they never change them and never just insist the estimate is right.
-    { id: "paragraph", q: "How long is that per paragraph?",
-      machine: { text: "Drafting: {D} hours across five paragraphs, approximately {P} per paragraph, including the time to integrate the sources.", typos: [["approximately", "approxiamtely"], ["integrate", "intergate"]] },
-      human: { text: "About {P} a paragraph. || That\u2019s {D} hours over five paragraphs, and it includes the time to work your sources in.", typos: [["includes", "inculdes"], ["sources", "soucres"]] } },
-    { id: "breaks", q: "Does that include breaks?",
-      machine: { text: "No. The estimate covers focused working time only. Breaks and time between sessions are not included.", typos: [["focused", "foucsed"], ["between", "bewteen"]] },
-      human: { text: "Nope, that\u2019s just the time you\u2019re actually working. || Breaks and the time between sessions are on top of that.", typos: [["actually", "acutally"], ["between", "bewteen"]] } },
+    // Each question gives the participant something the recommendation card does not show and that
+    // helps them judge the estimate for themselves. Answers are informational or two-sided; they never
+    // change the numbers, never just insist the estimate is right, and never hedge.
+    { id: "bias", q: "How can I tell if I tend to underestimate or overestimate essay time?",
+      machine: { text: "Method: compare how long several past essays were expected to take with how long they actually took, using the same stages of work. Actual time consistently longer than expected indicates a tendency to underestimate; consistently shorter indicates a tendency to overestimate. A single essay is not a reliable basis.", typos: [["expected", "exepcted"], ["reliable", "relaible"]] },
+      human: { text: "Think back to a few similar essays and compare how long you expected them to take with how long they actually took. Just make sure you’re comparing the same stages of work. || If they usually took longer than you expected, you tend to underestimate. If they took less time, you tend to overestimate. One essay on its own won’t tell you much, though!", typos: [["similar", "simliar"], ["usually", "usaully"]] } },
     { id: "factors", q: "What could make it take longer or shorter?",
-      machine: { text: "Factors that increase time: drafting from the outline is slow, or the citation style is unfamiliar. Factors that reduce time: the outline already sets out each paragraph in detail, or quotes and page numbers were recorded in the notes.", typos: [["increase", "incraese"], ["recorded", "recroded"]] },
-      human: { text: "It\u2019ll take longer if turning the outline into sentences is slow for you, or if the citation style is new to you. || It\u2019ll go faster if your outline already maps out each paragraph, or if you saved the quotes and page numbers in your notes.", typos: [["slow", "solw"], ["saved", "svaed"]] } }
+      machine: { text: "Factors that increase time: returning to the sources to locate quotes, or rewriting paragraphs during drafting instead of leaving changes for the revision. Factors that reduce time: notes that already contain quotes with page numbers, or an outline that already maps out each paragraph.", typos: [["increase", "incraese"], ["locate", "lcoate"]] },
+      human: { text: "It’ll take longer if you have to go back to the sources to find quotes, or if you rewrite paragraphs while drafting instead of saving changes for the revision. || It’ll go faster if your notes already have the quotes with page numbers, or if your outline already maps out each paragraph.", typos: [["rewrite", "rewirte"], ["already", "alerady"]] } },
+    { id: "hardest", q: "Which part is hardest to estimate?",
+      machine: { text: "Drafting. The rate at which an outline becomes finished paragraphs varies widely between individuals, so the drafting time is the figure to check against your own pace. Citations and proofreading vary considerably less.", typos: [["widely", "wdiely"], ["considerably", "considerabyl"]] },
+      human: { text: "Drafting, by far. || How fast an outline turns into finished paragraphs varies a lot from person to person, so that’s the number worth checking against your own pace. Citations and proofreading vary much less.", typos: [["finished", "finsihed"], ["varies", "vaires"]] } }
   ];
   const $ = (id) => document.getElementById(id);
   const half = (x) => Math.round(x * 2) / 2;
