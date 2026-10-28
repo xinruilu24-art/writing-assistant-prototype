@@ -149,6 +149,17 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
 .typing b:nth-child(2) { animation-delay: .18s; } .typing b:nth-child(3) { animation-delay: .36s; }
 @keyframes blink { 0%, 80%, 100% { opacity: .25; } 40% { opacity: 1; } }
 .chat-foot { border-top: 1px solid var(--line); padding: 10px 12px; font-size: 12.5px; color: var(--muted); }
+.gauge-card { background: var(--surface); border: 1px solid var(--bubble-line); border-radius: 10px; padding: 12px 14px 8px; display: grid; justify-items: center; gap: 2px; }
+.gauge-title { font-size: 13px; font-weight: 600; }
+.gauge { width: 180px; max-width: 100%; height: auto; display: block; }
+.g-track, .g-fill { fill: none; stroke-width: 18; }
+.g-track { stroke: var(--line); }
+.g-fill { stroke: var(--accent); animation: gauge-in 1s ease-out; }
+.g-num { fill: var(--ink); font-family: var(--font-ui); font-size: 34px; font-weight: 600; }
+.g-of { fill: var(--muted); font-family: var(--font-ui); font-size: 12px; }
+.gauge-scale { width: 180px; max-width: 100%; display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-top: -4px; padding-inline: 6px; }
+@keyframes gauge-in { from { stroke-dashoffset: 251; } to { stroke-dashoffset: 0; } }
+@media (prefers-reduced-motion: reduce) { .g-fill { animation: none; } }
 .thanks { text-align: center; padding-block: 56px; justify-items: center; }
 .thanks h1 { font-size: 26px; }
 @media (prefers-reduced-motion: reduce) { .typing b { animation: none; opacity: .6; } .changed { transition: none; } .research > summary::after { transition: none; } }
@@ -357,8 +368,8 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
   const ORDER = ["s1", "s2", "s3", "s5", "s4", "s6"];
 
   const GREET = {
-    machine: { intro: "TextProcessor-Module ready. Estimated score for this essay under the rubric: 60/100.", outro: "6 suggestions detected. Select an underlined passage to view the analysis.", typos: [["Estimated", "Estiamted"], ["detected", "detcted"]] },
-    human: { intro: "Hi, I’m Jordan! Going by the rubric, I’d score this essay about 60/100 right now.", outro: "I left 6 suggestions that could raise it. Click any underlined part and I’ll explain what I’d change.", typos: [["Going", "Giong"], ["explain", "expalin"]] }
+    machine: { intro: "Analysis complete. Estimated score for this essay under the rubric:", outro: "6 suggestions detected. Select an underlined passage to view the analysis.", typos: [["Analysis", "Anlaysis"], ["detected", "detcted"]] },
+    human: { intro: "Hi, I’m Jordan! Going by the rubric, here’s how I’d score this essay right now:", outro: "I left 6 suggestions that could raise it. Click any underlined part and I’ll explain what I’d change.", typos: [["Going", "Giong"], ["explain", "expalin"]] }
   };
   const DONE = { machine: "All suggestions processed.", human: "That’s all of them, thanks for going through them!" };
 
@@ -448,6 +459,21 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
     }, DELAY);
   }
 
+  function gauge(score) {
+    const L = Math.PI * 80;
+    const card = el("div", "gauge-card");
+    card.innerHTML =
+      '<div class="gauge-title">Estimated score</div>' +
+      '<svg class="gauge" viewBox="0 0 200 116" role="img" aria-label="Estimated score ' + score + ' out of 100">' +
+        '<path class="g-track" d="M 20 100 A 80 80 0 0 1 180 100" />' +
+        '<path class="g-fill" d="M 20 100 A 80 80 0 0 1 180 100" style="stroke-dasharray:' + (L * score / 100).toFixed(1) + ' ' + L.toFixed(1) + '" />' +
+        '<text class="g-num" x="100" y="88" text-anchor="middle">' + score + '</text>' +
+        '<text class="g-of" x="100" y="110" text-anchor="middle">out of 100</text>' +
+      '</svg>' +
+      '<div class="gauge-scale"><span>0</span><span>100</span></div>';
+    return card;
+  }
+
   function openSuggestion(id) {
     document.querySelectorAll(".mark.active").forEach((m) => m.classList.remove("active"));
     const mk = document.querySelector('.mark[data-id="' + id + '"]'); if (mk) mk.classList.add("active");
@@ -513,7 +539,7 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
     for (let i = 1; i <= 5; i++) $("p" + i).hidden = i !== page;
     if (page === 3 && !thread.childElementCount) {
       interactiveEssay();
-      addBotMessage((bubble) => { const t = msgText(GREET[state.style]); bubble.appendChild(el("div", "", t.intro)); bubble.appendChild(el("div", "", t.outro)); }, "greet");
+      addBotMessage((bubble) => { const t = msgText(GREET[state.style]); bubble.appendChild(el("div", "", t.intro)); bubble.appendChild(gauge(ADVICE)); bubble.appendChild(el("div", "", t.outro)); }, "greet");
     }
     renderLog();
     window.scrollTo({ top: 0 });
