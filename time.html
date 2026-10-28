@@ -265,9 +265,9 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
     { id: "citations", q: "Why plan time for citations and proofreading?",
       machine: { text: "In-text citations and a formatted reference list are frequently underestimated. A separate proofreading pass reduces errors. Allocation: {C} hours for citations and references, {R} hours for revising and proofreading.", typos: [["frequently", "frequnetly"], ["reduces", "reudces"]] },
       human: { text: "People usually leave citations until the last minute and then scramble. || Giving them {C} hours, plus {R} hours to revise and proofread, means you won\u2019t be fixing references at midnight.", typos: [["usually", "usaully"], ["scramble", "scarmble"]] } },
-    { id: "longer", q: "That\u2019s more than I estimated. Why?",
-      machine: { text: "Students typically underestimate writing time. In one study, students took about 1.6 times longer than they predicted to finish their theses (Buehler et al., 1994). The estimate includes a buffer for this.", typos: [["typically", "typcially"], ["includes", "inclueds"]] },
-      human: { text: "Honestly, most students underestimate how long writing takes. || One study found students took about 1.6 times longer than they predicted to finish their theses (Buehler et al., 1994), so I built in some extra room.", typos: [["Honestly", "Honsetly"], ["extra", "exrta"]] } }
+    { id: "total", q: "How did you get the total?",
+      machine: { text: "The total adds up the three remaining tasks. Writing tasks usually take longer than planned, so extra time is included.", typos: [["remaining", "reamining"], ["included", "inculded"]] },
+      human: { text: "It\u2019s just the three tasks you have left, added together. || Writing almost always takes longer than people plan for, so I built in some extra room.", typos: [["together", "togehter"], ["extra", "exrta"]] } }
   ];
   const $ = (id) => document.getElementById(id);
   const half = (x) => Math.round(x * 2) / 2;
