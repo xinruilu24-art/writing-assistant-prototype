@@ -118,6 +118,13 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
 .typing b:nth-child(2) { animation-delay: .18s; } .typing b:nth-child(3) { animation-delay: .36s; }
 @keyframes blink { 0%, 80%, 100% { opacity: .25; } 40% { opacity: 1; } }
 .final[hidden] { display: none; }
+.chips { border-top: 1px solid var(--line); padding: 12px 16px 14px; display: grid; gap: 8px; }
+.chips[hidden] { display: none; }
+.chips-label { font-size: 12px; color: var(--muted); font-weight: 600; }
+.chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { border: 1px solid var(--accent); color: var(--accent); background: var(--surface); border-radius: 999px; padding: 6px 14px; font-size: 13.5px; }
+.chip:hover { background: color-mix(in srgb, var(--accent) 10%, var(--surface)); }
+.chip:disabled { opacity: .45; cursor: not-allowed; }
 .scale-q { display: grid; gap: 6px; }
 .scale-q legend { font-weight: 600; padding: 0; }
 .scale-q fieldset { border: 0; margin: 0; padding: 0; display: grid; gap: 6px; }
@@ -127,7 +134,15 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
 .scale-ends { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); max-width: 480px; }
 .thanks { text-align: center; padding-block: 56px; justify-items: center; }
 .thanks h1 { font-size: 26px; }
-@media (prefers-reduced-motion: reduce) { .typing b { animation: none; opacity: .6; } .research > summary::after { transition: none; } }
+.think-row { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted); }
+.spin { width: 14px; height: 14px; flex: none; border-radius: 50%; border: 2px solid var(--line); border-top-color: var(--accent); animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.think-bar { height: 4px; border-radius: 999px; background: var(--line); overflow: hidden; width: 180px; max-width: 100%; }
+.think-bar i { display: block; height: 100%; width: 100%; background: var(--accent); transform-origin: left; animation: think-fill 10s linear forwards; }
+@keyframes think-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.msg.cont { margin-top: -8px; }
+.msg.cont .avatar { visibility: hidden; }
+@media (prefers-reduced-motion: reduce) { .typing b { animation: none; opacity: .6; } .spin, .think-bar i { animation: none; } .research > summary::after { transition: none; } }
 </style>
 </head>
 <body>
@@ -157,7 +172,7 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
           <button type="button" class="rbtn" id="reset">Restart from page 1</button>
         </div>
       </div>
-      <p class="research-note">Pages: 1 scenario + first estimate → 2 assistant’s recommendation + final estimate → 3 three S-TIAS items → 4 thanks. The recommendation is 1.5 × the first estimate, rounded to the nearest half hour. Citations and revising each get one sixth of it (rounded to half an hour, at least 0.5); drafting gets the rest. Same numbers in every condition; only the bot’s wording and spelling slips change, never the numbers or task names. Fixed 1.5 s reply delay.</p>
+      <p class="research-note">Pages: 1 scenario + first estimate → 2 assistant’s recommendation + final estimate → 3 three S-TIAS items → 4 thanks. The recommendation is 1.5 × the first estimate, rounded to the nearest half hour. Citations and revising each get one sixth of it (rounded to half an hour, at least 0.5); drafting gets the rest. Same numbers in every condition; only the bot’s wording and spelling slips change, never the numbers or task names. Same timing in every condition: 10 s “Thinking…” before the first analysis, then 1.5 s per reply. Human-like replies arrive as 2–3 short messages 0.9 s apart; the machine sends the same content as one message after the same total wait. After the recommendation, three suggested questions appear; each has a fixed answer (same content in every condition) and the recommended numbers never change. All three must be asked before the final-estimate box appears, so everyone sees the same AI content. Decision time is counted from when that box appears.</p>
       <div class="stats" id="stats"></div>
       <div class="log-head">
         <span class="research-hint" id="copy-status" aria-live="polite"></span>
@@ -199,6 +214,7 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
         <span class="chat-sub">Campus Academic Assistant (prototype)</span>
       </div>
       <div class="thread" id="thread" aria-live="polite"></div>
+      <div class="chips" id="chips" hidden></div>
     </section>
     <div class="card final" id="final-card" hidden>
       <div class="q" style="border-top:0;padding-top:0">
@@ -237,16 +253,31 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
   const TASKS = ["Drafting", "Citations and references", "Revising and proofreading"];
   const MSG = {
     machine: { intro: "Analysis of the remaining tasks complete. Estimated time to finish the assignment:", outro: "Estimate based on the remaining tasks listed in the assignment description.", typos: [["Analysis", "Anlaysis"], ["listed", "lsited"]] },
-    human: { intro: "Hi, I’m Jordan! Looking at what you still have left, here’s how long I think it’ll take:", outro: "That should give you enough time to do it well without rushing.", typos: [["Looking", "Lookign"], ["enough", "enoguh"]] }
+    human: { intro: "Looking at what you still have left, here’s how long I think it’ll take:", outro: "That should give you enough time to do it well without rushing.", typos: [["Looking", "Lookign"], ["enough", "enoguh"]] }
   };
 
+  const INTRO = {
+    machine: { text: "Assignment parsed: 1,500-word essay based on three sources. Completed: reading, notes, outline. Remaining: drafting, citations and references, revising and proofreading.", typos: [["parsed", "pasred"], ["Completed", "Comlpeted"]] },
+    human: { text: "Hi, I\u2019m Jordan! \ud83d\udc4b || So you\u2019ve already read all three sources, taken notes and made an outline. Nice start. || What\u2019s left is the draft, the citations and references, and a final proofread.", typos: [["start", "strat"], ["final", "fianl"]] }
+  };
+  const FOLLOW = [
+    { id: "drafting", q: "Why does drafting take the longest?",
+      machine: { text: "Drafting converts the outline into five paragraphs (introduction, three body paragraphs, conclusion) and integrates evidence from three sources. It is allocated {D} hours, about two thirds of the total.", typos: [["converts", "convetrs"], ["integrates", "intergates"]] },
+      human: { text: "That\u2019s where most of the real work happens: you\u2019re turning your outline into five full paragraphs and weaving in your three sources. || That\u2019s why I gave it {D} hours, about two thirds of the total.", typos: [["happens", "hpapens"], ["weaving", "waeving"]] } },
+    { id: "citations", q: "Why plan time for citations and proofreading?",
+      machine: { text: "In-text citations and a formatted reference list are frequently underestimated. A separate proofreading pass reduces errors. Allocation: {C} hours for citations and references, {R} hours for revising and proofreading.", typos: [["frequently", "frequnetly"], ["reduces", "reudces"]] },
+      human: { text: "People usually leave citations until the last minute and then scramble. || Giving them {C} hours, plus {R} hours to revise and proofread, means you won\u2019t be fixing references at midnight.", typos: [["usually", "usaully"], ["scramble", "scarmble"]] } },
+    { id: "longer", q: "That\u2019s more than I estimated. Why?",
+      machine: { text: "Students typically underestimate writing time. In one study, students took about 1.6 times longer than they predicted to finish their theses (Buehler et al., 1994). The estimate includes a buffer for this.", typos: [["typically", "typcially"], ["includes", "inclueds"]] },
+      human: { text: "Honestly, most students underestimate how long writing takes. || One study found students took about 1.6 times longer than they predicted to finish their theses (Buehler et al., 1994), so I built in some extra room.", typos: [["Honestly", "Honsetly"], ["extra", "exrta"]] } }
+  ];
   const $ = (id) => document.getElementById(id);
   const half = (x) => Math.round(x * 2) / 2;
   const fmt = (x) => (Number.isInteger(x) ? String(x) : x.toFixed(1)) + (x === 1 ? " hour" : " hours");
   let state;
 
   function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
-  function fresh(style, typos) { return { style, typos, page: 1, est1: null, est2: null, advice: null, parts: null, adviceAt: null, decisionMs: null, peeks: 0, survey: null, pageAt: performance.now() }; }
+  function fresh(style, typos) { return { style, typos, page: 1, est1: null, est2: null, advice: null, parts: null, adviceAt: null, decisionMs: null, peeks: 0, survey: null, pageAt: performance.now(), busy: false, asked: [], q: [], finalAt: null }; }
 
   function applyTypos(text, list) {
     if (!state.typos) return text;
@@ -273,41 +304,147 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
   function botName() { return state.style === "machine" ? "TextProcessor-Module" : "Jordan · Peer Writing Consultant"; }
   function avatar() { return el("span", "avatar " + state.style, state.style === "machine" ? "TP" : "J"); }
 
-  function showRecommendation() {
-    const thread = $("thread"); thread.innerHTML = "";
-    const me = el("div", "msg me"); me.appendChild(el("div", "bubble", "How long do you think this assignment will take me to finish?"));
-    thread.appendChild(me);
-    const typing = el("div", "msg"); const tb = el("div", "bubble");
+  const num = (x) => (Number.isInteger(x) ? String(x) : x.toFixed(1));
+  function fill(t) { return t.replace("{D}", num(state.parts[0])).replace("{C}", num(state.parts[1])).replace("{R}", num(state.parts[2])); }
+
+  function userSay(text) { const me = el("div", "msg me"); me.appendChild(el("div", "bubble", text)); $("thread").appendChild(me); }
+
+  // ---- Chat timing (identical in all four conditions) ----
+  // THINK_MS: one "Thinking…" bubble before the first analysis.
+  // Human-like style splits a reply into several short bubbles GAP ms apart; machine style sends
+  // the same content as one bubble after the same total wait (firstDelay + GAP per extra bubble).
+  const THINK_MS = 10000, GAP = 900;
+  const thread = $("thread");
+  function reveal(node) { node.scrollIntoView({ block: "nearest", behavior: "smooth" }); }
+  function setBusy(b) { state.busy = b; setChips(); }
+  function enqueue(job) { state.q.push(job); if (!state.busy) pump(); }
+  function pump() {
+    const job = state.q.shift();
+    if (!job) { setBusy(false); return; }
+    setBusy(true); const token = state;
+    job(() => { if (token === state) pump(); });
+  }
+  function typingRow(cont) {
+    const row = el("div", "msg" + (cont ? " cont" : "")); const tb = el("div", "bubble");
     tb.innerHTML = '<span class="typing" aria-label="Assistant is typing"><b></b><b></b><b></b></span>';
-    typing.appendChild(avatar()); typing.appendChild(tb); thread.appendChild(typing);
-    const token = state;
-    setTimeout(() => {
-      if (token !== state) return;
-      typing.remove();
-      const m = MSG[state.style];
-      const both = applyTypos(m.intro + "\u0000" + m.outro, m.typos).split("\u0000");
-      const row = el("div", "msg"), bubble = el("div", "bubble");
-      bubble.appendChild(el("div", "who", botName()));
-      bubble.appendChild(el("div", "", both[0]));
-      const card = el("div", "est");
-      card.appendChild(el("div", "est-label", "Estimated time"));
-      const top = el("div", "est-top"); top.appendChild(el("b", "", (Number.isInteger(state.advice) ? String(state.advice) : state.advice.toFixed(1)))); top.appendChild(el("span", "", "hours in total")); card.appendChild(top);
-      const bar = el("div", "bar"); state.parts.forEach((p) => { const i = el("i"); i.style.width = (100 * p / state.advice) + "%"; bar.appendChild(i); }); card.appendChild(bar);
-      const tbl = el("table");
-      TASKS.forEach((name, k) => {
-        const tr = el("tr"); const a = el("td"); const dot = el("span", "dot d" + (k + 1));
-        a.appendChild(dot); a.appendChild(document.createTextNode(name));
-        tr.appendChild(a); tr.appendChild(el("td", "", fmt(state.parts[k]))); tbl.appendChild(tr);
-      });
-      card.appendChild(tbl);
-      bubble.appendChild(card);
-      bubble.appendChild(el("div", "", both[1]));
-      row.appendChild(avatar()); row.appendChild(bubble); thread.appendChild(row);
+    row.appendChild(avatar()); row.appendChild(tb); thread.appendChild(row); reveal(row);
+    return row;
+  }
+  function botRow(build, first) {
+    const row = el("div", "msg" + (first ? "" : " cont")), bubble = el("div", "bubble");
+    if (first) bubble.appendChild(el("div", "who", botName()));
+    build(bubble);
+    row.appendChild(avatar()); row.appendChild(bubble); thread.appendChild(row); reveal(row);
+    return bubble;
+  }
+  function thinking() {
+    enqueue((done) => {
+      const row = el("div", "msg"), b = el("div", "bubble"); b.setAttribute("aria-label", "Assistant is thinking");
+      b.innerHTML = '<div class="think-row"><span class="spin" aria-hidden="true"></span><span>Thinking…</span></div><div class="think-bar"><i></i></div>';
+      row.appendChild(avatar()); row.appendChild(b); thread.appendChild(row); reveal(row);
+      const token = state;
+      setTimeout(() => { if (token !== state) return; row.remove(); done(); }, THINK_MS);
+    });
+  }
+  function say(machineBuild, humanBuilds, after, firstDelay) {
+    enqueue((done) => {
+      const n = humanBuilds.length, d0 = firstDelay === undefined ? DELAY : firstDelay, token = state;
+      const finish = () => { if (after) after(); done(); };
+      if (state.style === "machine") {
+        const t = typingRow(false);
+        setTimeout(() => { if (token !== state) return; t.remove(); botRow(machineBuild, true); finish(); }, d0 + GAP * (n - 1));
+        return;
+      }
+      let i = 0;
+      const next = (wait) => {
+        const t = wait > 0 ? typingRow(i > 0) : null;
+        setTimeout(() => {
+          if (token !== state) return;
+          if (t) t.remove();
+          botRow(humanBuilds[i], i === 0); i++;
+          if (i < n) next(GAP); else finish();
+        }, wait);
+      };
+      next(d0);
+    });
+  }
+  // pair = { machine: {text, typos}, human: {text, typos} }. The human text has " || " split points:
+  // one bubble per piece. The machine wait uses the human piece count, so both styles wait equally.
+  function sayText(pair, after, firstDelay) {
+    const m = pair[state.style];
+    const pieces = fill(applyTypos(m.text, m.typos)).split(" || ");
+    const n = pair.human.text.split(" || ").length;
+    const humanBuilds = state.style === "human" ? pieces.map((t) => (bubble) => bubble.appendChild(el("div", "", t))) : new Array(n).fill(null);
+    say((bubble) => bubble.appendChild(el("div", "", pieces.join(" "))), humanBuilds, after, firstDelay);
+  }
+
+  function recCard() {
+    const card = el("div", "est");
+    card.appendChild(el("div", "est-label", "Estimated time"));
+    const top = el("div", "est-top"); top.appendChild(el("b", "", num(state.advice))); top.appendChild(el("span", "", "hours in total")); card.appendChild(top);
+    const bar = el("div", "bar"); state.parts.forEach((p) => { const i = el("i"); i.style.width = (100 * p / state.advice) + "%"; bar.appendChild(i); }); card.appendChild(bar);
+    const tbl = el("table");
+    TASKS.forEach((name, k) => {
+      const tr = el("tr"); const a = el("td"); a.appendChild(el("span", "dot d" + (k + 1))); a.appendChild(document.createTextNode(name));
+      tr.appendChild(a); tr.appendChild(el("td", "", fmt(state.parts[k]))); tbl.appendChild(tr);
+    });
+    card.appendChild(tbl);
+    return card;
+  }
+  function sayRecommendation(after) {
+    const m = MSG[state.style];
+    const both = applyTypos(m.intro + "\u0000" + m.outro, m.typos).split("\u0000");
+    say(
+      (bubble) => { bubble.appendChild(el("div", "", both[0])); bubble.appendChild(recCard()); bubble.appendChild(el("div", "", both[1])); },
+      [
+        (bubble) => { bubble.appendChild(el("div", "", both[0])); bubble.appendChild(recCard()); },
+        (bubble) => bubble.appendChild(el("div", "", both[1]))
+      ],
+      after
+    );
+  }
+
+  function renderChips() {
+    const box = $("chips"); box.innerHTML = "";
+    const left = FOLLOW.filter((f) => !state.asked.some((a) => a.id === f.id));
+    if (!left.length) { box.hidden = true; return; }
+    box.hidden = false;
+    box.appendChild(el("div", "chips-label", "Suggested questions"));
+    const rowEl = el("div", "chip-row");
+    left.forEach((f) => {
+      const b = el("button", "chip", f.q); b.type = "button"; b.disabled = state.busy;
+      b.addEventListener("click", () => ask(f));
+      rowEl.appendChild(b);
+    });
+    box.appendChild(rowEl);
+  }
+  function setChips() { document.querySelectorAll("#chips .chip").forEach((b) => { b.disabled = state.busy; }); }
+
+  function ask(f) {
+    if (state.busy || state.asked.some((a) => a.id === f.id)) return;
+    state.asked.push({ id: f.id, atMs: Math.round(performance.now() - state.adviceAt) });
+    userSay(f.q);
+    renderChips(); renderLog();
+    sayText(f, () => {
+      renderChips();
+      if (state.asked.length === FOLLOW.length && state.finalAt === null) {
+        state.finalAt = performance.now();
+        $("first-shown").textContent = fmt(state.est1);
+        $("final-card").hidden = false; reveal($("final-card"));
+        renderLog();
+      }
+    });
+  }
+
+  function showRecommendation() {
+    $("thread").innerHTML = ""; $("chips").innerHTML = ""; $("chips").hidden = true;
+    userSay("Can you help me estimate how long this assignment will take?");
+    thinking();
+    sayText(INTRO, null, 0);
+    sayRecommendation(() => {
       state.adviceAt = performance.now();
-      $("first-shown").textContent = fmt(state.est1);
-      $("final-card").hidden = false;
-      renderLog();
-    }, DELAY);
+      renderChips(); renderLog();
+    });
   }
 
   function buildSurvey() {
@@ -348,6 +485,7 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
       [w === null ? dash : w.trunc.toFixed(2), "WOA"],
       [state.decisionMs === null ? dash : (state.decisionMs / 1000).toFixed(1) + " s", "Decision time"],
       [String(state.peeks), "Re-opened assignment"],
+      [state.asked.length + "/3", "Questions asked"],
       [state.survey ? (state.survey.reduce((a, b) => a + b, 0) / 3).toFixed(2) : dash, "S-TIAS mean"]
     ];
     const box = $("stats"); box.innerHTML = "";
@@ -371,6 +509,7 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
       "woa_truncated," + (w ? w.trunc.toFixed(3) : ""),
       "decision_ms," + (state.decisionMs ?? ""),
       "assignment_reopened," + state.peeks,
+      "questions_asked," + state.asked.map((a) => a.id + "@" + a.atMs + "ms").join(";"),
       "stias_1_3," + (state.survey ? state.survey.join(";") : "")
     ].join("\n");
   }
@@ -401,7 +540,7 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
   $("est2").addEventListener("input", () => { $("p2-next").disabled = readHours($("est2")) === null; });
   $("p2-next").addEventListener("click", () => {
     const v = readHours($("est2")); if (v === null) return;
-    state.est2 = v; state.decisionMs = Math.round(performance.now() - state.adviceAt);
+    state.est2 = v; state.decisionMs = Math.round(performance.now() - state.finalAt);
     show(3);
   });
   $("p3-next").addEventListener("click", () => {
