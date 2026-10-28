@@ -162,7 +162,15 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
 @media (prefers-reduced-motion: reduce) { .g-fill { animation: none; } }
 .thanks { text-align: center; padding-block: 56px; justify-items: center; }
 .thanks h1 { font-size: 26px; }
-@media (prefers-reduced-motion: reduce) { .typing b { animation: none; opacity: .6; } .changed { transition: none; } .research > summary::after { transition: none; } }
+.think-row { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted); }
+.spin { width: 14px; height: 14px; flex: none; border-radius: 50%; border: 2px solid var(--line); border-top-color: var(--accent); animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.think-bar { height: 4px; border-radius: 999px; background: var(--line); overflow: hidden; width: 180px; max-width: 100%; }
+.think-bar i { display: block; height: 100%; width: 100%; background: var(--accent); transform-origin: left; animation: think-fill 10s linear forwards; }
+@keyframes think-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.msg.cont { margin-top: -8px; }
+.msg.cont .avatar { visibility: hidden; }
+@media (prefers-reduced-motion: reduce) { .typing b { animation: none; opacity: .6; } .spin, .think-bar i { animation: none; } .changed { transition: none; } .research > summary::after { transition: none; } }
 </style>
 </head>
 <body>
@@ -199,7 +207,7 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
           <button type="button" class="rbtn" id="reset">Restart from page 1</button>
         </div>
       </div>
-      <p class="research-note">Pages: 1 rubric → 2 essay (no marks) + first score → 3 essay with suggestions + assistant (no free text) → 4 original essay again + second score → 5 thanks. The assistant opens by scoring the original essay 60/100 in every condition (the rubric score). WOA = (second score − first score) ÷ (60 − first score), both scores for the same original essay. Each good suggestion accepted adds 10 to the revised essay’s rubric score; each bad one costs 10 on Evidence.</p>
+      <p class="research-note">Pages: 1 rubric → 2 essay (no marks) + first score → 3 essay with suggestions + assistant (no free text) → 4 original essay again + second score → 5 thanks. The assistant opens by scoring the original essay 60/100 in every condition (the rubric score). WOA = (second score − first score) ÷ (60 − first score), both scores for the same original essay. Each good suggestion accepted adds 10 to the revised essay’s rubric score; each bad one costs 10 on Evidence. Timing is the same in every condition: 10 s “Thinking…” before the first message, then 1.2 s per reply. Human-like replies arrive as 2–3 short messages 0.9 s apart (the last asks “Do you want to accept this change?”); the machine sends the same content as one message after the same total wait.</p>
       <div class="stats" id="stats"></div>
       <div class="log">
         <div class="log-head">
@@ -442,22 +450,66 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
   function avatarEl() { const a = el("span", "avatar " + state.style, state.style === "machine" ? "TP" : "J"); return a; }
   function botName() { return state.style === "machine" ? "TextProcessor-Module" : "Jordan · Peer Writing Consultant"; }
 
-  function addBotMessage(build, key) {
-    const typing = el("div", "msg"); const tb = el("div", "bubble");
-    tb.innerHTML = '<span class="typing" aria-label="Assistant is typing"><b></b><b></b><b></b></span>';
-    typing.appendChild(avatarEl()); typing.appendChild(tb); thread.appendChild(typing); thread.scrollTop = thread.scrollHeight;
-    const token = state;
-    setTimeout(() => {
-      if (token !== state) return;
-      typing.remove();
-      const row = el("div", "msg"), bubble = el("div", "bubble");
-      bubble.appendChild(el("div", "who", botName()));
-      build(bubble);
-      row.appendChild(avatarEl()); row.appendChild(bubble); thread.appendChild(row);
-      if (key) { state.bubbles[key] = bubble; state.shownAt[key] = performance.now(); }
-      thread.scrollTop = thread.scrollHeight;
-    }, DELAY);
+  // ---- Chat timing (identical in all four conditions) ----
+  // THINK_MS: one "Thinking…" bubble before the first analysis.
+  // Human-like style splits a reply into several short bubbles GAP ms apart; machine style sends
+  // the same content as one bubble after the same total wait (firstDelay + GAP per extra bubble).
+  // Replies are queued so two replies never interleave.
+  const THINK_MS = 10000, GAP = 900;
+  function scrollDown() { thread.scrollTop = thread.scrollHeight; }
+  function enqueue(job) { state.q = state.q || []; state.q.push(job); if (!state.busy) pump(); }
+  function pump() {
+    const job = state.q.shift();
+    if (!job) { state.busy = false; return; }
+    state.busy = true; const token = state;
+    job(() => { if (token === state) pump(); });
   }
+  function typingRow(cont) {
+    const row = el("div", "msg" + (cont ? " cont" : "")); const tb = el("div", "bubble");
+    tb.innerHTML = '<span class="typing" aria-label="Assistant is typing"><b></b><b></b><b></b></span>';
+    row.appendChild(avatarEl()); row.appendChild(tb); thread.appendChild(row); scrollDown();
+    return row;
+  }
+  function botRow(build, first) {
+    const row = el("div", "msg" + (first ? "" : " cont")), bubble = el("div", "bubble");
+    if (first) bubble.appendChild(el("div", "who", botName()));
+    build(bubble);
+    row.appendChild(avatarEl()); row.appendChild(bubble); thread.appendChild(row); scrollDown();
+    return bubble;
+  }
+  function thinking() {
+    enqueue((done) => {
+      const row = el("div", "msg"), b = el("div", "bubble"); b.setAttribute("aria-label", "Assistant is thinking");
+      b.innerHTML = '<div class="think-row"><span class="spin" aria-hidden="true"></span><span>Thinking…</span></div><div class="think-bar"><i></i></div>';
+      row.appendChild(avatarEl()); row.appendChild(b); thread.appendChild(row); scrollDown();
+      const token = state;
+      setTimeout(() => { if (token !== state) return; row.remove(); done(); }, THINK_MS);
+    });
+  }
+  function say(machineBuild, humanBuilds, key, firstDelay) {
+    enqueue((done) => {
+      const n = humanBuilds.length, d0 = firstDelay === undefined ? DELAY : firstDelay, token = state;
+      const finish = (last) => { if (key) { state.bubbles[key] = last; state.shownAt[key] = performance.now(); } done(); };
+      if (state.style === "machine") {
+        const t = typingRow(false);
+        setTimeout(() => { if (token !== state) return; t.remove(); finish(botRow(machineBuild, true)); }, d0 + GAP * (n - 1));
+        return;
+      }
+      let i = 0;
+      const next = (wait) => {
+        const t = wait > 0 ? typingRow(i > 0) : null;
+        setTimeout(() => {
+          if (token !== state) return;
+          if (t) t.remove();
+          const b = botRow(humanBuilds[i], i === 0); i++;
+          if (i < n) next(GAP); else finish(b);
+        }, wait);
+      };
+      next(d0);
+    });
+  }
+  function addBotMessage(build, key) { say(build, [build], key); }
+  function line(text, typos) { return el("div", "", applyTypos(text, typos)); }
 
   function gauge(score) {
     const L = Math.PI * 80;
@@ -484,24 +536,39 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
     }
     if (state.opened[id]) return;
     state.opened[id] = true;
-    const s = S[id], r = RUB[s.rubric];
-    addBotMessage((bubble) => {
-      const t = msgText(s[state.style]);
-      bubble.appendChild(el("div", "rub", "Rubric · " + r.name + " (" + s.sub + ")"));
-      bubble.appendChild(el("div", "", t.intro));
-      const box = el("div", "suggest");
-      box.appendChild(el("span", "lab", s.replacement === "" ? "Suggested: delete" : "Suggested revision"));
-      box.appendChild(s.replacement === "" ? el("del", "", s.original.trim()) : el("span", "", s.replacement));
-      bubble.appendChild(box);
-      bubble.appendChild(el("div", "", t.outro));
-      bubble.appendChild(el("div", "", state.style === "machine" ? "Apply this change?" : "Want me to make this change?"));
+    const s = S[id], r = RUB[s.rubric], rubLine = "Rubric · " + r.name + " (" + s.sub + ")";
+    const t = msgText(s[state.style]);
+    const box = () => {
+      const b = el("div", "suggest");
+      b.appendChild(el("span", "lab", s.replacement === "" ? "Suggested: delete" : "Suggested revision"));
+      b.appendChild(s.replacement === "" ? el("del", "", s.original.trim()) : el("span", "", s.replacement));
+      return b;
+    };
+    const buttons = (yesText, noText) => {
       const acts = el("div", "actions");
-      const yes = el("button", "btn primary", "Accept"); yes.type = "button";
-      const no = el("button", "btn", "Dismiss"); no.type = "button";
+      const yes = el("button", "btn primary", yesText); yes.type = "button";
+      const no = el("button", "btn", noText); no.type = "button";
       yes.addEventListener("click", () => decide(id, true, acts));
       no.addEventListener("click", () => decide(id, false, acts));
-      acts.appendChild(yes); acts.appendChild(no); bubble.appendChild(acts);
-    }, id);
+      acts.appendChild(yes); acts.appendChild(no);
+      return acts;
+    };
+    say(
+      (bubble) => {                                   // machine: one message, as before
+        bubble.appendChild(el("div", "rub", rubLine));
+        bubble.appendChild(el("div", "", t.intro));
+        bubble.appendChild(box());
+        bubble.appendChild(el("div", "", t.outro));
+        bubble.appendChild(el("div", "", "Apply this change?"));
+        bubble.appendChild(buttons("Accept", "Dismiss"));
+      },
+      [                                               // human-like: three messages
+        (bubble) => { bubble.appendChild(el("div", "rub", rubLine)); bubble.appendChild(el("div", "", t.intro)); },
+        (bubble) => { bubble.appendChild(box()); bubble.appendChild(el("div", "", t.outro)); },
+        (bubble) => { bubble.appendChild(el("div", "", "Do you want to accept this change?")); bubble.appendChild(buttons("Yes", "No")); }
+      ],
+      id
+    );
   }
 
   function decide(id, accepted, acts) {
@@ -539,7 +606,17 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
     for (let i = 1; i <= 5; i++) $("p" + i).hidden = i !== page;
     if (page === 3 && !thread.childElementCount) {
       interactiveEssay();
-      addBotMessage((bubble) => { const t = msgText(GREET[state.style]); bubble.appendChild(el("div", "", t.intro)); bubble.appendChild(gauge(ADVICE)); bubble.appendChild(el("div", "", t.outro)); }, "greet");
+      const g = GREET.human.typos;
+      thinking();
+      say(
+        (bubble) => { const t = msgText(GREET.machine); bubble.appendChild(el("div", "", t.intro)); bubble.appendChild(gauge(ADVICE)); bubble.appendChild(el("div", "", t.outro)); },
+        [
+          (bubble) => bubble.appendChild(line("Hi, I’m Jordan! 👋", g)),
+          (bubble) => { bubble.appendChild(line("Going by the rubric, here’s how I’d score this essay right now:", g)); bubble.appendChild(gauge(ADVICE)); },
+          (bubble) => bubble.appendChild(line("I left 6 suggestions that could raise it. Click any underlined part and I’ll explain what I’d change.", g))
+        ],
+        "greet", 0
+      );
     }
     renderLog();
     window.scrollTo({ top: 0 });
