@@ -141,6 +141,27 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
 .msg.cont { margin-top: -8px; }
 .msg.cont .avatar { visibility: hidden; }
 @media (prefers-reduced-motion: reduce) { .typing b { animation: none; opacity: .6; } .research > summary::after { transition: none; } }
+
+/* Researcher notes: structured cards instead of one paragraph */
+.notes { border-top: 1px solid var(--research-line); padding-top: 12px; }
+.notes > summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--research-ink); }
+.notes > summary::-webkit-details-marker { display: none; }
+.notes > summary::before { content: ""; width: 7px; height: 7px; border-right: 2px solid var(--research-muted); border-bottom: 2px solid var(--research-muted); transform: rotate(-45deg); transition: transform .2s ease; }
+.notes[open] > summary::before { transform: rotate(45deg); }
+.note-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr)); gap: 12px; margin-top: 12px; }
+.note { border: 1px solid var(--research-line); border-radius: 10px; padding: 14px 16px; display: grid; gap: 10px; align-content: start; font-size: 14px; line-height: 1.55; color: var(--research-ink); min-width: 0; }
+.note h3 { margin: 0; font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--research-muted); }
+.note ol, .note ul { margin: 0; padding-left: 20px; display: grid; gap: 7px; }
+.note p { margin: 0; }
+.note .k { color: var(--research-muted); }
+.note .eq { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.note .nq { font-style: italic; }
+.note-table { overflow-x: auto; }
+.note table { width: 100%; border-collapse: collapse; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+.note th, .note td { text-align: left; padding: 7px 10px 7px 0; border-bottom: 1px solid var(--research-line); vertical-align: top; }
+.note th { color: var(--research-muted); font-weight: 500; font-size: 12px; }
+.note td.yes { color: #8fe0b6; white-space: nowrap; } .note td.no { color: #ffb4ae; }
+@media (prefers-reduced-motion: reduce) { .notes > summary::before { transition: none; } }
 </style>
 </head>
 <body>
@@ -170,12 +191,60 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
           <button type="button" class="rbtn" id="reset">Restart from page 1</button>
         </div>
       </div>
-      <p class="research-note">Pages: 1 scenario + first estimate → 2 assistant’s recommendation + final estimate → 3 three S-TIAS items → 4 thanks. The recommendation is 1.5 × the first estimate, rounded to the nearest half hour. Citations and revising each get one sixth of it (rounded to half an hour, at least 0.5); drafting gets the rest. Same numbers in every condition; only the bot’s wording and spelling slips change, never the numbers or task names. Same timing in every condition: 10 s “Thinking…” before the first analysis, then 1.5 s per reply. Human-like replies arrive as 2–3 short messages 0.9 s apart; the machine sends the same content as one message after the same total wait. After the recommendation, three suggested questions appear (schedule, where to start, what to check when proofreading); each has a fixed answer (same content in every condition). The questions are about how to do the work, not whether the estimate is right, and the answers contain no numbers, so they add nothing that argues for or against the recommendation; they only give the bot more turns in which its style and spelling slips show. All three must be asked before the final-estimate box appears, so everyone sees the same AI content. Decision time is counted from when that box appears.</p>
       <div class="stats" id="stats"></div>
       <div class="log-head">
         <span class="research-hint" id="copy-status" aria-live="polite"></span>
         <button type="button" class="rbtn" id="copy-csv">Copy as CSV</button>
       </div>
+      <details class="notes" open>
+        <summary>How this task works</summary>
+        <div class="note-grid">
+          <section class="note">
+            <h3>Participant flow</h3>
+            <ol>
+              <li><b>Scenario and first estimate.</b> 1,500-word essay due in a week; the participant enters the hours it will take (1–40, half hours allowed).</li>
+              <li><b>Assistant.</b> The participant asks for help, 10 s “Thinking…”, then the assistant sums up what is left and gives its recommendation with a breakdown.</li>
+              <li><b>Suggested questions.</b> All three must be asked before the final-estimate box appears.</li>
+              <li><b>Final estimate.</b> Keep the first estimate or change it.</li>
+              <li><b>Trust questions.</b> Three S-TIAS items (1–7).</li>
+            </ol>
+          </section>
+          <section class="note">
+            <h3>Recommendation</h3>
+            <ul>
+              <li><span class="k">Total</span> = 1.5 × first estimate, rounded to the nearest half hour</li>
+              <li><span class="k">Citations and references</span> = one sixth of the total; <span class="k">revising and proofreading</span> = one sixth (each rounded to half an hour, at least 0.5)</li>
+              <li><span class="k">Drafting</span> = the rest</li>
+            </ul>
+          </section>
+          <section class="note">
+            <h3>Suggested questions</h3>
+            <ul>
+              <li class="nq">How should I spread this over the week?</li>
+              <li class="nq">Where should I start the draft?</li>
+              <li class="nq">What should I check when I proofread?</li>
+            </ul>
+            <p class="k">They ask how to do the work, not whether the estimate is right, and the answers contain no numbers. So they add no argument for or against the recommendation; they only give the bot more turns in which its style and spelling slips show.</p>
+          </section>
+          <section class="note">
+            <h3>Scores and WOA</h3>
+            <ul>
+              <li><span class="k">WOA</span> = (final − first) ÷ (recommendation − first), kept between 0 and 1</li>
+              <li><span class="k">Decision time</span> = from the final-estimate box appearing to Next</li>
+              <li><span class="k">Also logged:</span> questions asked (with time), times the assignment was re-opened, S-TIAS</li>
+            </ul>
+          </section>
+          <section class="note">
+            <h3>Conditions and timing</h3>
+            <ul>
+          <li><b>Machine:</b> TextProcessor-Module. Each reply is one message.</li>
+          <li><b>Human-like:</b> Jordan. Each reply is 2–3 short messages.</li>
+          <li><b>Typos:</b> 2 spelling slips in every message, never in numbers or task names.</li>
+          <li><b>Same in every condition:</b> content, numbers and timing. 10 s “Thinking…” before the first message, then 1.5 s per reply; human-like messages come 0.9 s apart and the machine waits the same total time.</li>
+            </ul>
+          </section>
+        </div>
+      </details>
     </div>
   </details>
 
@@ -480,7 +549,9 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
     const stats = [
       [state.est1 === null ? dash : String(state.est1), "First estimate (h)"],
       [state.advice === null ? dash : String(state.advice), "AI recommendation (h)"],
-      [state.parts ? state.parts.join(" + ") : dash, "Breakdown (h)"],
+      [state.parts ? String(state.parts[0]) : dash, "AI: drafting (h)"],
+      [state.parts ? String(state.parts[1]) : dash, "AI: citations (h)"],
+      [state.parts ? String(state.parts[2]) : dash, "AI: revising (h)"],
       [state.est2 === null ? dash : String(state.est2), "Final estimate (h)"],
       [w === null ? dash : w.trunc.toFixed(2), "WOA"],
       [state.decisionMs === null ? dash : (state.decisionMs / 1000).toFixed(1) + " s", "Decision time"],
